@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.enums import BookingStatus
@@ -69,3 +69,99 @@ class BookingsRepo:
         if status is not None:
             stmt = stmt.where(Booking.status == status)
         return list((await self.session.execute(stmt)).scalars().all())
+
+    async def list_admin(
+        self,
+        business_id: int,
+        *,
+        staff_id: int | None = None,
+        service_id: int | None = None,
+        status: BookingStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Booking]:
+        stmt = select(Booking).where(Booking.business_id == business_id)
+        if staff_id is not None:
+            stmt = stmt.where(Booking.staff_id == staff_id)
+        if service_id is not None:
+            stmt = stmt.where(Booking.service_id == service_id)
+        if status is not None:
+            stmt = stmt.where(Booking.status == status)
+        stmt = stmt.order_by(Booking.starts_at.desc()).limit(limit).offset(offset)
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def list_admin_for_local_date(
+        self,
+        business_id: int,
+        start_utc: datetime,
+        end_utc: datetime,
+        *,
+        staff_id: int | None = None,
+        service_id: int | None = None,
+        status: BookingStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Booking]:
+        stmt = select(Booking).where(
+            Booking.business_id == business_id,
+            Booking.starts_at >= start_utc,
+            Booking.starts_at < end_utc,
+        )
+        if staff_id is not None:
+            stmt = stmt.where(Booking.staff_id == staff_id)
+        if service_id is not None:
+            stmt = stmt.where(Booking.service_id == service_id)
+        if status is not None:
+            stmt = stmt.where(Booking.status == status)
+        stmt = stmt.order_by(Booking.starts_at.asc()).limit(limit).offset(offset)
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def dashboard_counts(
+        self,
+        business_id: int,
+        today_utc_start: datetime,
+        today_utc_end: datetime,
+        week_utc_start: datetime,
+        week_utc_end: datetime,
+        no_show_window_start: datetime,
+    ) -> dict[str, int]:
+        today_count = (
+            await self.session.execute(
+                select(func.count())
+                .select_from(Booking)
+                .where(
+                    Booking.business_id == business_id,
+                    Booking.starts_at >= today_utc_start,
+                    Booking.starts_at < today_utc_end,
+                    Booking.status.in_(
+                        [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED]
+                    ),
+                )
+            )
+        ).scalar_one()
+        week_count = (
+            await self.session.execute(
+                select(func.count())
+                .select_from(Booking)
+                .where(
+                    Booking.business_id == business_id,
+                    Booking.starts_at >= week_utc_start,
+                    Booking.starts_at < week_utc_end,
+                    Booking.status.in_(
+                        [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED]
+                    ),
+                )
+            )
+        ).scalar_one()
+        no_show_count = (
+            await self.session.execute(
+                select(func.count())
+                .select_from(Booking)
+                .where(
+                    Booking.business_id == business_id,
+                    Booking.starts_at >= no_show_window_start,
+                    Booking.status == BookingStatus.NO_SHOW,
+                )
+            )
+        ).scalar_one()
+        return {"today": today_count, "this_week": week_count, "no_show_30d": no_show_count}
