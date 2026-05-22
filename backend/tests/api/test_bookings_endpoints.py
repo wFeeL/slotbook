@@ -174,3 +174,77 @@ async def test_cancel_by_non_owner_returns_403(
         headers=other_headers,
     )
     assert cancel_resp.status_code == 403, cancel_resp.text
+
+
+@pytest.mark.asyncio
+async def test_create_booking_at_non_step_time_returns_422(
+    client, db_session, business, client_user, settings
+) -> None:  # type: ignore[no-untyped-def]
+    """Booking at a non-step time (e.g. 12:07 with 15-min steps) should be rejected."""
+    # Set slot_step_minutes=15 on the business row
+    business.slot_step_minutes = 15
+    db_session.add(business)
+    await db_session.commit()
+    await db_session.refresh(business)
+
+    svc, staff = await _seed(db_session, business)
+
+    # Build a slot that is NOT on a 15-minute boundary: pick the next day at 12:07 UTC
+    base = datetime.now(UTC).replace(hour=12, minute=7, second=0, microsecond=0)
+    non_step_slot = (base + timedelta(days=2)).isoformat()
+
+    payload = {
+        "service_id": svc.id,
+        "staff_id": staff.id,
+        "starts_at": non_step_slot,
+    }
+    resp = await client.post(
+        "/api/v1/bookings",
+        json=payload,
+        headers=auth_headers(client_user, settings),
+    )
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"]["code"] == "slot_outside_working_hours"
+
+
+@pytest.mark.asyncio
+async def test_create_booking_within_buffer_window_returns_422(
+    client, db_session, business, client_user, settings
+) -> None:  # type: ignore[no-untyped-def]
+    """With buffer_minutes=15 and a 60-min service, the next valid start after 10:00
+    is 11:15 (10:00 + 60min + 15min buffer). Booking at 11:00 should be rejected."""
+    # Set booking_buffer_minutes=15 and slot_step_minutes=15 on the business row
+    business.booking_buffer_minutes = 15
+    business.slot_step_minutes = 15
+    db_session.add(business)
+    await db_session.commit()
+    await db_session.refresh(business)
+
+    svc, staff = await _seed(db_session, business)
+
+    # First booking at 10:00 UTC, 2 days from now
+    base = datetime.now(UTC).replace(hour=10, minute=0, second=0, microsecond=0)
+    slot_10_00 = (base + timedelta(days=2)).isoformat()
+    slot_11_00 = (base + timedelta(days=2, hours=1)).isoformat()
+
+    headers = auth_headers(client_user, settings)
+
+    # Create the first booking at 10:00 — should succeed
+    resp1 = await client.post(
+        "/api/v1/bookings",
+        json={"service_id": svc.id, "staff_id": staff.id, "starts_at": slot_10_00},
+        headers=headers,
+    )
+    assert resp1.status_code == 201, resp1.text
+
+    # Attempt second booking at 11:00 — 10:00+60min=11:00, but buffer pushes
+    # next valid slot to 11:15; so 11:00 is inside the buffer window
+    resp2 = await client.post(
+        "/api/v1/bookings",
+        json={"service_id": svc.id, "staff_id": staff.id, "starts_at": slot_11_00},
+        headers=headers,
+    )
+    # The FOR UPDATE lock sees no direct overlap (11:00-12:00 doesn't overlap 10:00-11:00),
+    # so the buffer check in calculate_available_slots is what catches it -> 422
+    assert resp2.status_code == 422, resp2.text
+    assert resp2.json()["detail"]["code"] == "slot_outside_working_hours"

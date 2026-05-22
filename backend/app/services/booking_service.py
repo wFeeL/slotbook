@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import structlog
 from sqlalchemy import select
@@ -20,6 +21,7 @@ from app.core.errors import (
     StaffDoesNotOfferService,
     StaffInactive,
 )
+from app.core.time import local_date_bounds_utc
 from app.db.enums import (
     BookingSource,
     BookingStatus,
@@ -39,6 +41,7 @@ from app.db.repositories.services import ServicesRepo
 from app.db.repositories.staff import StaffRepo
 from app.services.notification_service import NotificationService
 from app.services.slot_service import (
+    BusyInterval,
     ExceptionEntry,
     Slot,
     WorkingInterval,
@@ -71,11 +74,10 @@ class BookingService:
                 return True
         return False
 
-    async def _admin_user_ids(self, business_id: int) -> list[int]:
-        """Return IDs of all ADMIN users for a given business."""
-        stmt = select(User).where(User.role == UserRole.ADMIN)
-        rows = list((await self.session.execute(stmt)).scalars().all())
-        return [u.id for u in rows]
+    async def _admin_user_ids(self, _business_id: int) -> list[int]:
+        """All admin users system-wide. Multi-tenant scoping will be added later."""
+        stmt = select(User.id).where(User.role == UserRole.ADMIN)
+        return list((await self.session.execute(stmt)).scalars().all())
 
     # ------------------------------------------------------------------
     # Public API
@@ -135,9 +137,16 @@ class BookingService:
         if overlapping:
             raise SlotAlreadyTaken()
 
-        # 8. Validate the slot is within working hours.
-        #    We pass bookings=[] because we already confirmed no overlaps above.
-        target_date = starts_at_utc.date()
+        # 8. Validate the slot is within working hours using real business
+        #    slot_step_minutes and booking_buffer_minutes so we reject bookings
+        #    at non-step times and enforce the buffer between bookings.
+        target_date = starts_at_utc.astimezone(ZoneInfo(business.timezone)).date()
+        day_start_utc, day_end_utc = local_date_bounds_utc(target_date, business.timezone)
+        existing = await BookingsRepo(self.session).list_active_for_staff_range(
+            staff_id, day_start_utc, day_end_utc
+        )
+        busy = [BusyInterval(start=b.starts_at, end=b.ends_at) for b in existing]
+
         wh_rows = await WorkingHoursRepo(self.session).list_for_staff_weekday(
             staff_id, target_date.weekday()
         )
@@ -154,16 +163,14 @@ class BookingService:
             target_date=target_date,
             business_timezone=business.timezone,
             service_duration_minutes=service.duration_minutes,
-            slot_step_minutes=1,  # finest granularity — checks any valid start minute
-            buffer_minutes=0,  # no buffer: we already locked overlapping rows
+            slot_step_minutes=business.slot_step_minutes,
+            buffer_minutes=business.booking_buffer_minutes,
             working_hours=working_intervals,
             exceptions=exceptions,
-            bookings=[],
+            bookings=busy,
             now_utc=now,
         )
-
-        slot_starts = {s.starts_at_utc for s in candidate_slots}
-        if starts_at_utc not in slot_starts:
+        if not any(s.starts_at_utc == starts_at_utc for s in candidate_slots):
             raise SlotOutsideWorkingHours()
 
         # 9. Insert the booking
