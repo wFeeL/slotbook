@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 
-from app.api.routes import admin, auth, services, slots, staff
+from app.api.routes import admin, auth, bookings, services, slots, staff
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth.router)
 api_router.include_router(services.router)
 api_router.include_router(staff.router)
 api_router.include_router(slots.router)
+api_router.include_router(bookings.router)
 api_router.include_router(admin.router)

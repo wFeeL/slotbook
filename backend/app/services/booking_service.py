@@ -1,0 +1,333 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+import structlog
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.errors import (
+    CancellationTooLate,
+    CannotCancelInCurrentStatus,
+    Forbidden,
+    NotFound,
+    ServiceInactive,
+    SlotAlreadyTaken,
+    SlotInPast,
+    SlotOutsideWorkingHours,
+    StaffDoesNotOfferService,
+    StaffInactive,
+)
+from app.db.enums import (
+    BookingSource,
+    BookingStatus,
+    NotificationStatus,
+    NotificationType,
+    UserRole,
+)
+from app.db.models.booking import Booking
+from app.db.models.business import Business
+from app.db.models.notification import Notification
+from app.db.models.user import User
+from app.db.repositories.audit import AuditRepo
+from app.db.repositories.bookings import BookingsRepo
+from app.db.repositories.notifications import NotificationsRepo
+from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
+from app.db.repositories.services import ServicesRepo
+from app.db.repositories.staff import StaffRepo
+from app.services.notification_service import NotificationService
+from app.services.slot_service import (
+    ExceptionEntry,
+    Slot,
+    WorkingInterval,
+    calculate_available_slots,
+)
+
+logger = structlog.get_logger(__name__)
+
+
+class BookingService:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _is_slot_conflict(exc: IntegrityError) -> bool:
+        """Return True if the IntegrityError is a unique violation on the booking slot index."""
+        exc_str = str(exc)
+        if "bookings_active_by_staff" in exc_str:
+            return True
+        if exc.orig is not None:
+            if "bookings_active_by_staff" in str(exc.orig):
+                return True
+            # asyncpg UniqueViolationError exposes constraint_name
+            constraint_name = getattr(exc.orig, "constraint_name", None)
+            if constraint_name == "bookings_active_by_staff":
+                return True
+        return False
+
+    async def _admin_user_ids(self, business_id: int) -> list[int]:
+        """Return IDs of all ADMIN users for a given business."""
+        stmt = select(User).where(User.role == UserRole.ADMIN)
+        rows = list((await self.session.execute(stmt)).scalars().all())
+        return [u.id for u in rows]
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    async def create_booking(
+        self,
+        *,
+        business: Business,
+        actor_user_id: int,
+        client_id: int,
+        staff_id: int,
+        service_id: int,
+        starts_at: datetime,
+        client_comment: str | None = None,
+        source: BookingSource = BookingSource.MINI_APP,
+        now_utc: datetime | None = None,
+    ) -> Booking:
+        now = now_utc or datetime.now(UTC)
+
+        # 1. starts_at must be timezone-aware; reject naive datetimes
+        if starts_at.tzinfo is None:
+            raise SlotInPast("starts_at must be timezone-aware")
+
+        # Normalise to UTC
+        starts_at_utc = starts_at.astimezone(UTC)
+
+        # 2. Reject past slots
+        if starts_at_utc < now:
+            raise SlotInPast()
+
+        # 3. Load service — 404 if missing or different business
+        service = await ServicesRepo(self.session).get(service_id)
+        if service is None or service.business_id != business.id:
+            raise NotFound("Service not found")
+        if not service.is_active:
+            raise ServiceInactive()
+
+        # 4. Load staff — 404 if missing or different business
+        staff = await StaffRepo(self.session).get(staff_id)
+        if staff is None or staff.business_id != business.id:
+            raise NotFound("Staff member not found")
+        if not staff.is_active:
+            raise StaffInactive()
+
+        # 5. Verify staff offers this service
+        if not await StaffRepo(self.session).offers_service(staff_id, service_id):
+            raise StaffDoesNotOfferService()
+
+        # 6. Calculate ends_at
+        ends_at_utc = starts_at_utc + timedelta(minutes=service.duration_minutes)
+
+        # 7. RACE-CRITICAL: lock overlapping rows
+        overlapping = await BookingsRepo(self.session).find_overlapping_for_update(
+            staff_id, starts_at_utc, ends_at_utc
+        )
+        if overlapping:
+            raise SlotAlreadyTaken()
+
+        # 8. Validate the slot is within working hours.
+        #    We pass bookings=[] because we already confirmed no overlaps above.
+        target_date = starts_at_utc.date()
+        wh_rows = await WorkingHoursRepo(self.session).list_for_staff_weekday(
+            staff_id, target_date.weekday()
+        )
+        working_intervals = [WorkingInterval(r.start_time, r.end_time) for r in wh_rows]
+
+        exc_rows = await ScheduleExceptionsRepo(self.session).list_for_staff_date(
+            staff_id, target_date
+        )
+        exceptions = [
+            ExceptionEntry(type=e.type, start=e.start_time, end=e.end_time) for e in exc_rows
+        ]
+
+        candidate_slots: list[Slot] = calculate_available_slots(
+            target_date=target_date,
+            business_timezone=business.timezone,
+            service_duration_minutes=service.duration_minutes,
+            slot_step_minutes=1,  # finest granularity — checks any valid start minute
+            buffer_minutes=0,  # no buffer: we already locked overlapping rows
+            working_hours=working_intervals,
+            exceptions=exceptions,
+            bookings=[],
+            now_utc=now,
+        )
+
+        slot_starts = {s.starts_at_utc for s in candidate_slots}
+        if starts_at_utc not in slot_starts:
+            raise SlotOutsideWorkingHours()
+
+        # 9. Insert the booking
+        booking = Booking(
+            business_id=business.id,
+            client_id=client_id,
+            staff_id=staff_id,
+            service_id=service_id,
+            starts_at=starts_at_utc,
+            ends_at=ends_at_utc,
+            status=BookingStatus.CONFIRMED,
+            client_comment=client_comment,
+            source=source,
+        )
+        BookingsRepo(self.session).add(booking)
+        try:
+            await self.session.flush()  # get booking.id — unique violation may surface here
+        except IntegrityError as exc:
+            await self.session.rollback()
+            if self._is_slot_conflict(exc):
+                raise SlotAlreadyTaken() from exc
+            raise
+
+        # 10. Create pending notifications
+        notif_repo = NotificationsRepo(self.session)
+        notif_repo.add(
+            Notification(
+                booking_id=booking.id,
+                user_id=client_id,
+                notification_type=NotificationType.BOOKING_CREATED_CLIENT,
+                notification_status=NotificationStatus.PENDING,
+            )
+        )
+        admin_ids = await self._admin_user_ids(business.id)
+        for admin_id in admin_ids:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=admin_id,
+                    notification_type=NotificationType.BOOKING_CREATED_ADMIN,
+                    notification_status=NotificationStatus.PENDING,
+                )
+            )
+
+        # 11. Insert audit log
+        AuditRepo(self.session).log(
+            actor_user_id=actor_user_id,
+            action="booking_created",
+            entity_type="booking",
+            entity_id=booking.id,
+            metadata={"staff_id": staff_id, "service_id": service_id, "source": source.value},
+        )
+
+        # 12. Commit — locks released, booking persisted atomically.
+        # Catch unique violation on (staff_id, starts_at) partial index — this handles
+        # the INSERT race condition where two concurrent transactions both passed the
+        # SELECT FOR UPDATE check (no existing rows to lock) and both attempted to INSERT.
+        try:
+            await self.session.commit()
+        except IntegrityError as exc:
+            await self.session.rollback()
+            if self._is_slot_conflict(exc):
+                raise SlotAlreadyTaken() from exc
+            raise
+        await self.session.refresh(booking)
+
+        # 13. Dispatch notifications (stub — just logs)
+        await NotificationService(self.session).dispatch_pending_for_booking(booking.id)
+
+        logger.info(
+            "booking.created",
+            booking_id=booking.id,
+            client_id=client_id,
+            staff_id=staff_id,
+            service_id=service_id,
+        )
+        return booking
+
+    async def cancel_booking(
+        self,
+        *,
+        business: Business,
+        actor_user_id: int,
+        actor_role: UserRole,
+        booking_id: int,
+        now_utc: datetime | None = None,
+    ) -> Booking:
+        now = now_utc or datetime.now(UTC)
+        now = now.replace(tzinfo=UTC) if now.tzinfo is None else now.astimezone(UTC)
+
+        is_admin = actor_role in {UserRole.ADMIN, UserRole.SUPERADMIN}
+
+        # 2. Load booking — 404 if missing or wrong business
+        booking = await BookingsRepo(self.session).get(booking_id)
+        if booking is None or booking.business_id != business.id:
+            raise NotFound("Booking not found")
+
+        # 3. Ownership check
+        if not is_admin and booking.client_id != actor_user_id:
+            raise Forbidden("You can only cancel your own bookings")
+
+        # 4. Status check
+        cancellable = {BookingStatus.PENDING, BookingStatus.CONFIRMED}
+        if booking.status not in cancellable:
+            raise CannotCancelInCurrentStatus()
+
+        # 5. Time limit check (clients only)
+        if not is_admin:
+            hours_left = (booking.starts_at - now).total_seconds() / 3600.0
+            if hours_left < business.min_cancellation_hours:
+                raise CancellationTooLate()
+
+        # 6. Update booking status
+        previous_status = booking.status.value
+        booking.status = (
+            BookingStatus.CANCELLED_BY_ADMIN if is_admin else BookingStatus.CANCELLED_BY_CLIENT
+        )
+        booking.cancelled_at = now
+
+        # 7. Notifications
+        notif_repo = NotificationsRepo(self.session)
+        notif_repo.add(
+            Notification(
+                booking_id=booking.id,
+                user_id=booking.client_id,
+                notification_type=NotificationType.BOOKING_CANCELLED_CLIENT,
+                notification_status=NotificationStatus.PENDING,
+            )
+        )
+        admin_ids = await self._admin_user_ids(business.id)
+        for admin_id in admin_ids:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=admin_id,
+                    notification_type=NotificationType.BOOKING_CANCELLED_ADMIN,
+                    notification_status=NotificationStatus.PENDING,
+                )
+            )
+
+        # 8. Audit log
+        metadata: dict[str, Any] = {
+            "cancelled_by_role": actor_role.value,
+            "previous_status": previous_status,
+        }
+        AuditRepo(self.session).log(
+            actor_user_id=actor_user_id,
+            action="booking_cancelled",
+            entity_type="booking",
+            entity_id=booking.id,
+            metadata=metadata,
+        )
+
+        # 9. Commit
+        await self.session.commit()
+        await self.session.refresh(booking)
+
+        # 10. Dispatch (stub)
+        await NotificationService(self.session).dispatch_pending_for_booking(booking.id)
+
+        logger.info(
+            "booking.cancelled",
+            booking_id=booking.id,
+            actor_user_id=actor_user_id,
+            is_admin=is_admin,
+        )
+        return booking
