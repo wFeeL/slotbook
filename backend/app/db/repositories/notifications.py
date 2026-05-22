@@ -15,8 +15,12 @@ class NotificationsRepo:
         self.session.add(notification)
 
     async def list_pending_for_booking(self, booking_id: int) -> list[Notification]:
-        stmt = select(Notification).where(
-            Notification.booking_id == booking_id,
-            Notification.notification_status == NotificationStatus.PENDING,
+        stmt = (
+            select(Notification)
+            .where(
+                Notification.booking_id == booking_id,
+                Notification.notification_status == NotificationStatus.PENDING,
+            )
+            .order_by(Notification.id)
         )
         return list((await self.session.execute(stmt)).scalars().all())
