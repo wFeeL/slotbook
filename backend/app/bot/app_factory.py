@@ -22,8 +22,8 @@ def create_dispatcher(_settings: Settings) -> Dispatcher:
     Routers are imported here (not at module top) to avoid circular imports
     when the API process imports app_factory without needing the dispatcher.
     """
-    from app.bot.middlewares.db import DbSessionMiddleware  # type: ignore[import-untyped]
-    from app.bot.middlewares.logging import UpdateLoggingMiddleware  # type: ignore[import-untyped]
+    from app.bot.middlewares.db import DbSessionMiddleware
+    from app.bot.middlewares.logging import UpdateLoggingMiddleware
     from app.bot.routers import admin_callbacks, help, my_bookings, start
 
     dispatcher = Dispatcher(storage=MemoryStorage())
