@@ -39,6 +39,7 @@ ignore = ["E501"]
 "tests/*" = ["S101"]
 "alembic/versions/*" = ["E501", "N999"]
 "app/core/errors.py" = ["N818"]
+"app/api/routes/*" = ["B008"]
 
 [tool.mypy]
 python_version = "3.12"
