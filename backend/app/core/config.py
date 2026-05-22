@@ -1,0 +1,75 @@
+from functools import lru_cache
+from typing import Any, Literal
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, EnvSettingsSource, SettingsConfigDict
+
+
+class _CommaSeparatedEnvSource(EnvSettingsSource):
+    """Custom env source that handles comma-separated values for list fields."""
+
+    def prepare_field_value(
+        self, field_name: str, field: Any, value: Any, value_is_complex: bool
+    ) -> Any:
+        if field_name == "BOT_ADMIN_TELEGRAM_IDS" and isinstance(value, str):
+            # Return the raw string so field_validator can process it.
+            return value
+        return super().prepare_field_value(field_name, field, value, value_is_complex)
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    APP_ENV: Literal["local", "test", "prod"] = "local"
+    APP_DEBUG: bool = True
+
+    DATABASE_URL: str
+    TEST_DATABASE_URL: str | None = None
+
+    BOT_TOKEN: str = "missing"
+    BOT_ADMIN_TELEGRAM_IDS: list[int] = Field(default_factory=list)
+
+    JWT_SECRET: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 1440
+
+    BUSINESS_NAME: str = "Demo Studio"
+    BUSINESS_TIMEZONE: str = "Europe/Moscow"
+    BUSINESS_BOOKING_BUFFER_MINUTES: int = 0
+    BUSINESS_MIN_CANCELLATION_HOURS: int = 2
+    BUSINESS_SLOT_STEP_MINUTES: int = 15
+
+    @field_validator("BOT_ADMIN_TELEGRAM_IDS", mode="before")
+    @classmethod
+    def parse_admin_ids(cls, v: Any) -> list[int]:
+        """Accept either a comma-separated string or a list."""
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            return [int(item) for item in v.split(",") if item.strip()]
+        if isinstance(v, list):
+            return [int(item) for item in v]
+        msg = f"Cannot parse BOT_ADMIN_TELEGRAM_IDS from {type(v)}"
+        raise ValueError(msg)
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: Any,
+        env_settings: Any,
+        dotenv_settings: Any,
+        file_secret_settings: Any,
+    ) -> tuple[Any, ...]:
+        return (
+            init_settings,
+            _CommaSeparatedEnvSource(settings_cls),
+            dotenv_settings,
+            file_secret_settings,
+        )
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]
