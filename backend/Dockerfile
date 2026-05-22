@@ -12,8 +12,9 @@ COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev || uv sync --no-dev
 
 COPY app ./app
-COPY alembic ./alembic
-COPY alembic.ini ./alembic.ini
-COPY seed.py ./seed.py
+# Later tasks add the following — uncomment when their files exist:
+#   COPY alembic ./alembic
+#   COPY alembic.ini ./alembic.ini
+#   COPY seed.py ./seed.py
 
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
