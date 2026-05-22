@@ -6,7 +6,6 @@ import json
 import time
 from urllib.parse import urlencode
 
-import pytest
 from httpx import AsyncClient
 
 from app.core.config import Settings, get_settings
@@ -24,7 +23,6 @@ def _build_init_data(bot_token: str, user: dict[str, object]) -> str:
     return urlencode(fields)
 
 
-@pytest.mark.asyncio
 async def test_auth_telegram_creates_user_and_returns_token(
     client: AsyncClient, settings: Settings
 ) -> None:
@@ -38,7 +36,6 @@ async def test_auth_telegram_creates_user_and_returns_token(
     assert body["user"]["role"] == "client"
 
 
-@pytest.mark.asyncio
 async def test_auth_telegram_promotes_admin_from_env(
     client: AsyncClient, settings: Settings
 ) -> None:
@@ -65,7 +62,6 @@ async def test_auth_telegram_promotes_admin_from_env(
         app.dependency_overrides.pop(get_settings, None)
 
 
-@pytest.mark.asyncio
 async def test_auth_telegram_rejects_tampered_hash(client: AsyncClient, settings: Settings) -> None:
     init = _build_init_data(settings.BOT_TOKEN, {"id": 9003, "first_name": "X"})
     tampered = init[:-1] + ("0" if init[-1] != "0" else "1")

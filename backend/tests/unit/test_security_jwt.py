@@ -28,7 +28,10 @@ def test_jwt_rejects_tampered_signature() -> None:
         expires_in=timedelta(minutes=10),
     )
     header, payload, signature = token.split(".")
-    flipped = signature[:-1] + ("0" if signature[-1] != "0" else "1")
+    # Flip a middle byte (avoid the last char which only carries 4 meaningful bits
+    # and can silently collide when base64url-decoded with a neighbouring char)
+    mid = len(signature) // 2
+    flipped = signature[:mid] + ("A" if signature[mid] != "A" else "B") + signature[mid + 1 :]
     tampered = f"{header}.{payload}.{flipped}"
     with pytest.raises(InvalidToken):
         decode_jwt(tampered, secret="s", algorithm="HS256")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends, Header
@@ -12,13 +11,7 @@ from app.core.security import decode_jwt
 from app.db.enums import UserRole
 from app.db.models.user import User
 from app.db.repositories.users import UsersRepo
-from app.db.session import get_session as _get_session
-
-
-async def get_session() -> AsyncIterator[AsyncSession]:
-    async for s in _get_session():
-        yield s
-
+from app.db.session import get_session
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
