@@ -18,6 +18,21 @@ async def test_admin_create_service(client, business, admin_user, settings) -> N
 
 
 @pytest.mark.asyncio
+async def test_admin_create_service_accepts_superadmin(
+    client, business, superadmin_user, settings
+) -> None:
+    response = await client.post(
+        "/api/v1/admin/services",
+        json={"title": "SuperAdminService", "duration_minutes": 45},
+        headers=auth_headers(superadmin_user, settings),
+    )
+    assert response.status_code == 201, (
+        f"Expected 201 for SUPERADMIN, got {response.status_code}: {response.json()}"
+    )
+    assert response.json()["title"] == "SuperAdminService"
+
+
+@pytest.mark.asyncio
 async def test_admin_create_service_rejects_client(client, business, client_user, settings) -> None:
     response = await client.post(
         "/api/v1/admin/services",

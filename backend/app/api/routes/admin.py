@@ -213,8 +213,8 @@ async def admin_list_bookings(
     staff_id: int | None = None,
     service_id: int | None = None,
     status_filter: Annotated[BookingStatus | None, Query(alias="status")] = None,
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
 ) -> list[AdminBookingRead]:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None

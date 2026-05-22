@@ -4,24 +4,18 @@ Two concurrent BookingService.create_booking calls compete for the same slot.
 Exactly one must succeed; the other must raise SlotAlreadyTaken.
 Final row count in bookings must be exactly 1.
 
-The test uses asyncio.Event barriers to force true interleaving of transactions:
-  1. Both sessions open and BEGIN their transaction.
-  2. Both execute SELECT FOR UPDATE — but since no rows exist yet, no lock contention.
-  3. One session inserts and commits first (wins the race).
-  4. The second session then re-runs its check and finds the row, raising SlotAlreadyTaken.
-
-Because Python asyncio is cooperative (single-threaded), we cannot have truly overlapping
-DB transactions the way two OS threads would. Instead we rely on the semantic guarantee:
-  - The winning session commits a booking row.
-  - The losing session (in a fresh attempt or due to a 409 on re-check) detects it.
-
-For a deterministic test of the application-level logic (not the raw MVCC locking):
-we do two sequential attempts in the same event loop and assert that the second
-always raises SlotAlreadyTaken once the first has committed.
-
-For a true DB-lock contention test you would need two OS threads, each running its own
-event loop. We do that here using asyncio.to_thread so that both transactions genuinely
-run on separate threads with separate asyncpg connections.
+Implementation details:
+  - Two OS threads are used, each running its own asyncio event loop.
+  - Each thread creates its own create_async_engine and asyncpg connection pool,
+    so the DB connections are completely independent and truly concurrent.
+  - threading.Barrier(2) synchronises both threads at the point just before each
+    calls create_booking, maximising the chance of overlapping DB transactions.
+  - The test validates two layers of protection:
+    1. SELECT FOR UPDATE in BookingService catches conflicts when a row already exists
+       and the second transaction blocks then re-checks.
+    2. The unique partial index (bookings_active_by_staff on status IN ('pending','confirmed'))
+       catches the edge case where both transactions INSERT simultaneously on an empty table
+       — the DB rejects the duplicate with an IntegrityError that is translated to SlotAlreadyTaken.
 """
 
 from __future__ import annotations

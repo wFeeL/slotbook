@@ -44,7 +44,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 async def get_admin_user(user: CurrentUser) -> User:
-    if user.role != UserRole.ADMIN:
+    if user.role not in {UserRole.ADMIN, UserRole.SUPERADMIN}:
         raise Forbidden("Admin role required")
     return user
 

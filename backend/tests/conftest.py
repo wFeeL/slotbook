@@ -176,6 +176,20 @@ async def admin_user(db_session: AsyncSession) -> User:
     return user
 
 
+@pytest_asyncio.fixture
+async def superadmin_user(db_session: AsyncSession) -> User:
+    user = User(
+        telegram_id=3003,
+        first_name="SuperAdmin",
+        role=UserRole.SUPERADMIN,
+        last_seen_at=datetime.now(UTC),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
 def auth_headers(user: User, settings: Settings) -> dict[str, str]:
     from datetime import timedelta
 

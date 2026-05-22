@@ -8,7 +8,7 @@ from app.db.enums import BookingStatus
 
 
 class AdminBookingPatch(BaseModel):
-    admin_comment: str | None = None
+    admin_comment: str | None = Field(default=None, max_length=2000)
     status: BookingStatus | None = None
 
 
@@ -17,8 +17,8 @@ class AdminBookingCreate(BaseModel):
     service_id: int = Field(gt=0)
     staff_id: int = Field(gt=0)
     starts_at: AwareDatetime
-    client_comment: str | None = None
-    admin_comment: str | None = None
+    client_comment: str | None = Field(default=None, max_length=1000)
+    admin_comment: str | None = Field(default=None, max_length=2000)
 
 
 class AdminBookingRead(BaseModel):

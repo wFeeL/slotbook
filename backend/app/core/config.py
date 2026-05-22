@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
@@ -65,6 +65,15 @@ class Settings(BaseSettings):
             return [int(item) for item in v]
         msg = f"Cannot parse BOT_ADMIN_TELEGRAM_IDS from {type(v)}"
         raise ValueError(msg)
+
+    @model_validator(mode="after")
+    def _check_prod_secrets(self) -> "Settings":
+        if self.APP_ENV == "prod":
+            if self.BOT_TOKEN == "missing":
+                raise ValueError("BOT_TOKEN must be set in production")
+            if self.JWT_SECRET in {"change_me", "change_me_in_real_env"}:
+                raise ValueError("JWT_SECRET must be set to a real value in production")
+        return self
 
     @classmethod
     def settings_customise_sources(
