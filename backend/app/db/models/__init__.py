@@ -1,4 +1,4 @@
-"""Re-export ORM models here so Alembic autogenerate sees them.
+from app.db.models.business import Business
+from app.db.models.user import User
 
-Models are added in later tasks (User+Business in Task 6, Service in Task 9, ...).
-"""
+__all__ = ["Business", "User"]
