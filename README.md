@@ -51,6 +51,51 @@ uv run uvicorn app.main:app --reload
 Open <http://localhost:8000/health> — `{"status":"ok"}`.
 Open <http://localhost:8000/docs> for the auto-generated OpenAPI UI.
 
+## Bot setup
+
+The Telegram bot runs as its own Docker service (`bot`) using the same image as the API.
+
+### Local development (polling)
+
+1. Create a bot via [@BotFather](https://t.me/BotFather) and copy the token.
+2. Put it in `backend/.env`:
+   ```
+   BOT_TOKEN=123456:ABC...
+   BOT_MODE=polling
+   MINI_APP_URL=https://your-miniapp.example.com
+   ```
+3. Start everything:
+   ```bash
+   docker compose up -d
+   ```
+4. Send `/start` to your bot in Telegram. You should see the greeting + main menu.
+
+### Production (webhook)
+
+1. Deploy behind HTTPS (nginx/Caddy → port 8001).
+2. Set in `.env`:
+   ```
+   APP_ENV=prod
+   BOT_MODE=webhook
+   BOT_WEBHOOK_URL=https://your-domain/webhook/telegram
+   BOT_WEBHOOK_SECRET_TOKEN=<long-random-string>
+   MINI_APP_URL=https://your-miniapp/
+   ```
+3. `main_bot.py` will call `setWebhook` on startup. Telegram POSTs updates with the secret-token header; the handler verifies and routes them to the dispatcher.
+
+### Adding admins
+
+Put your Telegram numeric ID in `BOT_ADMIN_TELEGRAM_IDS` (comma-separated) in `.env`. The promotion happens the next time you authenticate via `POST /api/v1/auth/telegram` from the Mini App — sending `/start` to the bot does NOT promote you.
+
+### What the bot can do (sub-project 2 scope)
+
+- `/start` — main menu with Mini App buttons
+- `/help` — usage info
+- `/my_bookings` — list of your upcoming bookings
+- Receives admin notifications about new bookings with `[❌ Отменить]` and `[📋 Открыть в панели]` buttons
+
+Reminders (24h / 2h before booking) are coming in sub-project 5.
+
 ## Environment variables
 
 | Variable | Default | Purpose |
