@@ -62,6 +62,16 @@ def test_rejects_expired_auth_date() -> None:
 
 
 def test_rejects_missing_user_field() -> None:
-    fields = {"auth_date": str(int(time.time())), "hash": "deadbeef"}
+    # Build a properly-signed initData without the 'user' field so validation
+    # passes the hash check and actually exercises the missing-user-field guard.
+    bot_token = "BOT_TOKEN"
+    fields = {
+        "auth_date": str(int(time.time())),
+        "query_id": "AAA",
+    }
+    data_check_string = "\n".join(f"{k}={fields[k]}" for k in sorted(fields))
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    fields["hash"] = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
     with pytest.raises(InvalidInitData):
-        validate_init_data("BOT_TOKEN", urlencode(fields), max_age_seconds=86400)
+        validate_init_data(bot_token, urlencode(fields), max_age_seconds=86400)
