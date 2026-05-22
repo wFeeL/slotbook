@@ -2,11 +2,19 @@ from fastapi import APIRouter, status
 
 from app.api.deps import AdminUser, SessionDep
 from app.core.errors import NotFound
+from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
 from app.db.repositories.businesses import BusinessesRepo
+from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
 from app.db.repositories.services import ServicesRepo
 from app.db.repositories.staff import StaffRepo
+from app.schemas.schedules import (
+    ScheduleExceptionCreate,
+    ScheduleExceptionRead,
+    WorkingHoursEntry,
+    WorkingHoursReplace,
+)
 from app.schemas.services import ServiceCreate, ServiceRead, ServiceUpdate
 from app.schemas.staff import StaffCreate, StaffRead, StaffServicesUpdate, StaffUpdate
 
@@ -103,4 +111,72 @@ async def replace_staff_services(
     if staff is None:
         raise NotFound("Staff member not found")
     await repo.replace_services(staff_id, body.service_ids)
+    await session.commit()
+
+
+@router.get("/staff/{staff_id}/working-hours", response_model=list[WorkingHoursEntry])
+async def get_working_hours(
+    staff_id: int, _admin: AdminUser, session: SessionDep
+) -> list[WorkingHoursEntry]:
+    if (await StaffRepo(session).get(staff_id)) is None:
+        raise NotFound("Staff member not found")
+    rows = await WorkingHoursRepo(session).list_for_staff(staff_id)
+    return [WorkingHoursEntry.model_validate(r) for r in rows]
+
+
+@router.put("/staff/{staff_id}/working-hours", status_code=status.HTTP_204_NO_CONTENT)
+async def put_working_hours(
+    staff_id: int, body: WorkingHoursReplace, _admin: AdminUser, session: SessionDep
+) -> None:
+    if (await StaffRepo(session).get(staff_id)) is None:
+        raise NotFound("Staff member not found")
+    entries = [
+        WorkingHours(
+            staff_id=staff_id,
+            weekday=e.weekday,
+            start_time=e.start_time,
+            end_time=e.end_time,
+            is_active=e.is_active,
+        )
+        for e in body.entries
+    ]
+    await WorkingHoursRepo(session).replace_for_staff(staff_id, entries)
+    await session.commit()
+
+
+@router.post(
+    "/staff/{staff_id}/exceptions",
+    response_model=ScheduleExceptionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_exception(
+    staff_id: int, body: ScheduleExceptionCreate, _admin: AdminUser, session: SessionDep
+) -> ScheduleExceptionRead:
+    if (await StaffRepo(session).get(staff_id)) is None:
+        raise NotFound("Staff member not found")
+    exception = ScheduleException(
+        staff_id=staff_id,
+        date=body.date,
+        type=body.type,
+        start_time=body.start_time,
+        end_time=body.end_time,
+        reason=body.reason,
+    )
+    ScheduleExceptionsRepo(session).add(exception)
+    await session.commit()
+    await session.refresh(exception)
+    return ScheduleExceptionRead.model_validate(exception)
+
+
+@router.delete(
+    "/staff/{staff_id}/exceptions/{exception_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_exception(
+    staff_id: int, exception_id: int, _admin: AdminUser, session: SessionDep
+) -> None:
+    if (await StaffRepo(session).get(staff_id)) is None:
+        raise NotFound("Staff member not found")
+    deleted = await ScheduleExceptionsRepo(session).delete(exception_id)
+    if not deleted:
+        raise NotFound("Exception not found")
     await session.commit()

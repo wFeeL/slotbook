@@ -51,18 +51,26 @@ async def db_engine():  # type: ignore[no-untyped-def]
     url = _resolve_test_db_url()
     engine = create_async_engine(url, future=True)
     async with engine.begin() as conn:
-        # Drop tables first, then drop the enum type if it exists.
+        # Drop tables first, then drop the enum types if they exist.
         await conn.run_sync(Base.metadata.drop_all)
         await conn.execute(text("DROP TYPE IF EXISTS user_role"))
-        # Create the enum type before creating tables (create_type=False on the ORM model).
+        await conn.execute(text("DROP TYPE IF EXISTS schedule_exception_type"))
+        # Create the enum types before creating tables (create_type=False on the ORM models).
         await conn.execute(
             text("CREATE TYPE user_role AS ENUM ('client','admin','staff','superadmin')")
+        )
+        await conn.execute(
+            text(
+                "CREATE TYPE schedule_exception_type"
+                " AS ENUM ('day_off','extra_working_time','blocked_time')"
+            )
         )
         await conn.run_sync(Base.metadata.create_all)
     yield engine
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.execute(text("DROP TYPE IF EXISTS user_role"))
+        await conn.execute(text("DROP TYPE IF EXISTS schedule_exception_type"))
     await engine.dispose()
 
 
