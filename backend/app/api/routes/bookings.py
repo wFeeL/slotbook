@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.api.deps import CurrentUser, SessionDep
-from app.db.enums import BookingSource
+from app.db.enums import BookingSource, BookingStatus
+from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.schemas.bookings import BookingCreate, BookingRead
 from app.services.booking_service import BookingService
@@ -30,6 +31,16 @@ async def create_booking(
         source=BookingSource.MINI_APP,
     )
     return BookingRead.model_validate(booking)
+
+
+@router.get("/my", response_model=list[BookingRead])
+async def my_bookings(
+    user: CurrentUser,
+    session: SessionDep,
+    status: BookingStatus | None = Query(default=None),
+) -> list[BookingRead]:
+    bookings = await BookingsRepo(session).list_for_client(user.id, status=status)
+    return [BookingRead.model_validate(b) for b in bookings]
 
 
 @router.post("/{booking_id}/cancel", response_model=BookingRead)

@@ -248,3 +248,48 @@ async def test_create_booking_within_buffer_window_returns_422(
     # so the buffer check in calculate_available_slots is what catches it -> 422
     assert resp2.status_code == 422, resp2.text
     assert resp2.json()["detail"]["code"] == "slot_outside_working_hours"
+
+
+@pytest.mark.asyncio
+async def test_my_bookings_returns_only_own(
+    client, db_session, business, client_user, settings
+) -> None:  # type: ignore[no-untyped-def]
+    """GET /bookings/my returns only the authenticated user's own bookings."""
+    from app.db.enums import UserRole
+    from app.db.models.user import User
+
+    svc, staff = await _seed(db_session, business)
+
+    # Create a second client user
+    other_client = User(
+        telegram_id=8888,
+        first_name="Other",
+        role=UserRole.CLIENT,
+        last_seen_at=datetime.now(UTC),
+    )
+    db_session.add(other_client)
+    await db_session.commit()
+    await db_session.refresh(other_client)
+
+    owner_headers = auth_headers(client_user, settings)
+    other_headers = auth_headers(other_client, settings)
+
+    # Owner creates a booking
+    create_resp = await client.post(
+        "/api/v1/bookings",
+        json={"service_id": svc.id, "staff_id": staff.id, "starts_at": _future_slot()},
+        headers=owner_headers,
+    )
+    assert create_resp.status_code == 201, create_resp.text
+    booking_id = create_resp.json()["id"]
+
+    # Owner's /my returns the booking
+    owner_resp = await client.get("/api/v1/bookings/my", headers=owner_headers)
+    assert owner_resp.status_code == 200, owner_resp.text
+    owner_bookings = owner_resp.json()
+    assert any(b["id"] == booking_id for b in owner_bookings)
+
+    # Other client's /my returns empty list
+    other_resp = await client.get("/api/v1/bookings/my", headers=other_headers)
+    assert other_resp.status_code == 200, other_resp.text
+    assert other_resp.json() == []
