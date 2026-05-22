@@ -1,3 +1,4 @@
+from enum import StrEnum
 from functools import lru_cache
 from typing import Any, Literal
 
@@ -8,6 +9,11 @@ from pydantic_settings import (
     EnvSettingsSource,
     SettingsConfigDict,
 )
+
+
+class BotMode(StrEnum):
+    POLLING = "polling"
+    WEBHOOK = "webhook"
 
 
 class _CommaSepBypassMixin:
@@ -41,6 +47,12 @@ class Settings(BaseSettings):
 
     BOT_TOKEN: str = "missing"
     BOT_ADMIN_TELEGRAM_IDS: list[int] = Field(default_factory=list)
+    BOT_MODE: BotMode = BotMode.POLLING
+    BOT_WEBHOOK_URL: str | None = None
+    BOT_WEBHOOK_SECRET_TOKEN: str | None = None
+    BOT_WEBHOOK_PORT: int = 8001
+    MINI_APP_URL: str = "https://miniapp.example.com"
+    BOT_ADMIN_NOTIFY_LIMIT: int = 10
 
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
@@ -73,6 +85,14 @@ class Settings(BaseSettings):
                 raise ValueError("BOT_TOKEN must be set in production")
             if self.JWT_SECRET in {"change_me", "change_me_in_real_env"}:
                 raise ValueError("JWT_SECRET must be set to a real value in production")
+            if self.BOT_MODE != BotMode.WEBHOOK:
+                raise ValueError("BOT_MODE must be 'webhook' in production")
+            if not self.BOT_WEBHOOK_URL or not self.BOT_WEBHOOK_URL.startswith("https://"):
+                raise ValueError("BOT_WEBHOOK_URL must be a non-empty HTTPS URL in production")
+            if not self.BOT_WEBHOOK_SECRET_TOKEN:
+                raise ValueError("BOT_WEBHOOK_SECRET_TOKEN must be set in production")
+            if "example.com" in self.MINI_APP_URL or not self.MINI_APP_URL.startswith("https://"):
+                raise ValueError("MINI_APP_URL must be a real HTTPS URL in production")
         return self
 
     @classmethod
