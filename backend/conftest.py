@@ -3,7 +3,9 @@
 import os
 
 # Provide minimal required settings for all tests.
-# These are overridden by .env if it exists (env vars take precedence over file).
+# These fallbacks are applied only when the env var isn't already set.
+# pydantic-settings precedence: os.environ > .env file > defaults, so a real
+# env var (or one set above by the test runner) will be used instead of these.
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://booking:booking@localhost:5432/booking")
 os.environ.setdefault(
     "TEST_DATABASE_URL",

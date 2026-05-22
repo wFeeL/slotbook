@@ -2,11 +2,16 @@ from functools import lru_cache
 from typing import Any, Literal
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, EnvSettingsSource, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    EnvSettingsSource,
+    SettingsConfigDict,
+)
 
 
-class _CommaSeparatedEnvSource(EnvSettingsSource):
-    """Custom env source that handles comma-separated values for list fields."""
+class _CommaSepBypassMixin:
+    """Mixin that passes comma-separated strings through unparsed so field_validator can handle them."""
 
     def prepare_field_value(
         self, field_name: str, field: Any, value: Any, value_is_complex: bool
@@ -14,7 +19,15 @@ class _CommaSeparatedEnvSource(EnvSettingsSource):
         if field_name == "BOT_ADMIN_TELEGRAM_IDS" and isinstance(value, str):
             # Return the raw string so field_validator can process it.
             return value
-        return super().prepare_field_value(field_name, field, value, value_is_complex)
+        return super().prepare_field_value(field_name, field, value, value_is_complex)  # type: ignore[misc]
+
+
+class _CommaSeparatedEnvSource(_CommaSepBypassMixin, EnvSettingsSource):
+    """Custom os.environ source that handles comma-separated values for list fields."""
+
+
+class _CommaSeparatedDotEnvSource(_CommaSepBypassMixin, DotEnvSettingsSource):
+    """Custom .env-file source that handles comma-separated values for list fields."""
 
 
 class Settings(BaseSettings):
@@ -65,7 +78,7 @@ class Settings(BaseSettings):
         return (
             init_settings,
             _CommaSeparatedEnvSource(settings_cls),
-            dotenv_settings,
+            _CommaSeparatedDotEnvSource(settings_cls),
             file_secret_settings,
         )
 
