@@ -3,9 +3,12 @@ from fastapi import APIRouter, status
 from app.api.deps import AdminUser, SessionDep
 from app.core.errors import NotFound
 from app.db.models.service import Service
+from app.db.models.staff import StaffMember
 from app.db.repositories.businesses import BusinessesRepo
 from app.db.repositories.services import ServicesRepo
+from app.db.repositories.staff import StaffRepo
 from app.schemas.services import ServiceCreate, ServiceRead, ServiceUpdate
+from app.schemas.staff import StaffCreate, StaffRead, StaffServicesUpdate, StaffUpdate
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -52,4 +55,52 @@ async def delete_service(service_id: int, _admin: AdminUser, session: SessionDep
     if service is None:
         raise NotFound("Service not found")
     await repo.soft_delete(service)
+    await session.commit()
+
+
+@router.post("/staff", response_model=StaffRead, status_code=status.HTTP_201_CREATED)
+async def create_staff(body: StaffCreate, _admin: AdminUser, session: SessionDep) -> StaffRead:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    staff = StaffMember(business_id=business.id, name=body.name, description=body.description)
+    StaffRepo(session).add(staff)
+    await session.commit()
+    await session.refresh(staff)
+    return StaffRead.model_validate(staff)
+
+
+@router.patch("/staff/{staff_id}", response_model=StaffRead)
+async def update_staff(
+    staff_id: int, body: StaffUpdate, _admin: AdminUser, session: SessionDep
+) -> StaffRead:
+    repo = StaffRepo(session)
+    staff = await repo.get(staff_id)
+    if staff is None:
+        raise NotFound("Staff member not found")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(staff, field, value)
+    await session.commit()
+    await session.refresh(staff)
+    return StaffRead.model_validate(staff)
+
+
+@router.delete("/staff/{staff_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_staff(staff_id: int, _admin: AdminUser, session: SessionDep) -> None:
+    repo = StaffRepo(session)
+    staff = await repo.get(staff_id)
+    if staff is None:
+        raise NotFound("Staff member not found")
+    staff.is_active = False
+    await session.commit()
+
+
+@router.put("/staff/{staff_id}/services", status_code=status.HTTP_204_NO_CONTENT)
+async def replace_staff_services(
+    staff_id: int, body: StaffServicesUpdate, _admin: AdminUser, session: SessionDep
+) -> None:
+    repo = StaffRepo(session)
+    staff = await repo.get(staff_id)
+    if staff is None:
+        raise NotFound("Staff member not found")
+    await repo.replace_services(staff_id, body.service_ids)
     await session.commit()
