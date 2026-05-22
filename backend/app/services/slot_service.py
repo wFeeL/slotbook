@@ -121,6 +121,9 @@ def calculate_available_slots(
     if service_duration_minutes <= 0:
         return []
 
+    if slot_step_minutes <= 0:
+        return []
+
     tz = ZoneInfo(business_timezone)
     effective_intervals = _apply_exceptions(working_hours, exceptions)
     if not effective_intervals:

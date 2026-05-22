@@ -173,3 +173,11 @@ def test_step_smaller_than_duration() -> None:
 def test_zero_or_negative_duration_returns_empty(duration: int) -> None:
     slots = _common(service_duration_minutes=duration)
     assert slots == []
+
+
+# ---------------------------------------------------------------------------
+# Extra: zero/negative slot_step_minutes -> empty
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("step", [0, -1, -15])
+def test_zero_or_negative_step_returns_empty(step: int) -> None:
+    assert _common(slot_step_minutes=step) == []
