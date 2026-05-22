@@ -56,6 +56,10 @@ async def dispatcher(db_engine):  # type: ignore[no-untyped-def]
     dp = Dispatcher(storage=MemoryStorage())
     dp.update.outer_middleware(UpdateLoggingMiddleware())
     dp.update.outer_middleware(_TestDbSessionMiddleware(sessionmaker))
+    # Each router module holds a singleton Router; reset parent so it can be
+    # re-attached to a fresh Dispatcher each test (function scope).
+    for r in (start.router, help.router, my_bookings.router, admin_callbacks.router):
+        r._parent_router = None  # type: ignore[attr-defined]
     dp.include_router(start.router)
     dp.include_router(help.router)
     dp.include_router(my_bookings.router)
