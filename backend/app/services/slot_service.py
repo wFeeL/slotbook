@@ -5,7 +5,16 @@ from datetime import UTC, datetime, time, timedelta
 from datetime import date as date_t
 from zoneinfo import ZoneInfo
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.errors import NotFound, ServiceInactive, StaffDoesNotOfferService, StaffInactive
+from app.core.time import local_date_bounds_utc, to_business_local
 from app.db.enums import ScheduleExceptionType
+from app.db.models.business import Business
+from app.db.repositories.bookings import BookingsRepo
+from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
+from app.db.repositories.services import ServicesRepo
+from app.db.repositories.staff import StaffRepo
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,3 +175,70 @@ def calculate_available_slots(
 
     slots.sort(key=lambda s: s.starts_at_utc)
     return slots
+
+
+class SlotService:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def list_available_slots(
+        self,
+        business: Business,
+        service_id: int,
+        staff_id: int,
+        target_date: date_t,
+        now_utc: datetime | None = None,
+    ) -> list[dict[str, datetime]]:
+        service = await ServicesRepo(self.session).get(service_id)
+        if service is None:
+            raise NotFound("Service not found")
+        if not service.is_active:
+            raise ServiceInactive()
+
+        staff = await StaffRepo(self.session).get(staff_id)
+        if staff is None:
+            raise NotFound("Staff member not found")
+        if not staff.is_active:
+            raise StaffInactive()
+        if not await StaffRepo(self.session).offers_service(staff_id, service_id):
+            raise StaffDoesNotOfferService()
+
+        wh_rows = await WorkingHoursRepo(self.session).list_for_staff_weekday(
+            staff_id, target_date.weekday()
+        )
+        working_intervals = [WorkingInterval(r.start_time, r.end_time) for r in wh_rows]
+
+        exc_rows = await ScheduleExceptionsRepo(self.session).list_for_staff_date(
+            staff_id, target_date
+        )
+        exceptions = [
+            ExceptionEntry(type=e.type, start=e.start_time, end=e.end_time) for e in exc_rows
+        ]
+
+        start_utc, end_utc = local_date_bounds_utc(target_date, business.timezone)
+        bookings = await BookingsRepo(self.session).list_active_for_staff_range(
+            staff_id, start_utc, end_utc
+        )
+        busy = [BusyInterval(start=b.starts_at, end=b.ends_at) for b in bookings]
+
+        now = now_utc or datetime.now(UTC)
+        raw_slots = calculate_available_slots(
+            target_date=target_date,
+            business_timezone=business.timezone,
+            service_duration_minutes=service.duration_minutes,
+            slot_step_minutes=business.slot_step_minutes,
+            buffer_minutes=business.booking_buffer_minutes,
+            working_hours=working_intervals,
+            exceptions=exceptions,
+            bookings=busy,
+            now_utc=now,
+        )
+        return [
+            {
+                "starts_at": s.starts_at_utc,
+                "ends_at": s.ends_at_utc,
+                "starts_at_local": to_business_local(s.starts_at_utc, business.timezone),
+                "ends_at_local": to_business_local(s.ends_at_utc, business.timezone),
+            }
+            for s in raw_slots
+        ]
