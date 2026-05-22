@@ -55,6 +55,8 @@ async def db_engine():  # type: ignore[no-untyped-def]
         await conn.run_sync(Base.metadata.drop_all)
         await conn.execute(text("DROP TYPE IF EXISTS user_role"))
         await conn.execute(text("DROP TYPE IF EXISTS schedule_exception_type"))
+        await conn.execute(text("DROP TYPE IF EXISTS booking_status"))
+        await conn.execute(text("DROP TYPE IF EXISTS booking_source"))
         # Create the enum types before creating tables (create_type=False on the ORM models).
         await conn.execute(
             text("CREATE TYPE user_role AS ENUM ('client','admin','staff','superadmin')")
@@ -65,12 +67,24 @@ async def db_engine():  # type: ignore[no-untyped-def]
                 " AS ENUM ('day_off','extra_working_time','blocked_time')"
             )
         )
+        await conn.execute(
+            text(
+                "CREATE TYPE booking_status AS ENUM ("
+                "'pending','confirmed','cancelled_by_client','cancelled_by_admin',"
+                "'completed','no_show','rescheduled')"
+            )
+        )
+        await conn.execute(
+            text("CREATE TYPE booking_source AS ENUM ('mini_app','bot','admin_manual')")
+        )
         await conn.run_sync(Base.metadata.create_all)
     yield engine
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.execute(text("DROP TYPE IF EXISTS user_role"))
         await conn.execute(text("DROP TYPE IF EXISTS schedule_exception_type"))
+        await conn.execute(text("DROP TYPE IF EXISTS booking_status"))
+        await conn.execute(text("DROP TYPE IF EXISTS booking_source"))
     await engine.dispose()
 
 
