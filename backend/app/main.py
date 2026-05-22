@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.api.router import api_router
 from app.api.routes import health
 from app.core.config import get_settings
 from app.core.errors import install_exception_handlers
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
     )
     install_exception_handlers(app)
     app.include_router(health.router, tags=["health"])
+    app.include_router(api_router)
     return app
 
 

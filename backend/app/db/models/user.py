@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Index, String, func
-from sqlalchemy.dialects.postgresql import ENUM
+from sqlalchemy import BigInteger, DateTime, Enum, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 from app.db.enums import UserRole
 
-user_role_enum = ENUM(
-    *[r.value for r in UserRole],
+user_role_enum = Enum(
+    UserRole,
     name="user_role",
     create_type=False,  # Alembic migration creates the type explicitly
+    native_enum=True,
+    values_callable=lambda obj: [e.value for e in obj],
 )
 
 
