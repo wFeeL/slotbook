@@ -39,7 +39,6 @@ from app.db.repositories.notifications import NotificationsRepo
 from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
 from app.db.repositories.services import ServicesRepo
 from app.db.repositories.staff import StaffRepo
-from app.services.notification_service import NotificationService
 from app.services.slot_service import (
     BusyInterval,
     ExceptionEntry,
@@ -237,9 +236,6 @@ class BookingService:
             raise
         await self.session.refresh(booking)
 
-        # 13. Dispatch notifications (stub — just logs)
-        await NotificationService(self.session).dispatch_pending_for_booking(booking.id)
-
         logger.info(
             "booking.created",
             booking_id=booking.id,
@@ -327,9 +323,6 @@ class BookingService:
         # 9. Commit
         await self.session.commit()
         await self.session.refresh(booking)
-
-        # 10. Dispatch (stub)
-        await NotificationService(self.session).dispatch_pending_for_booking(booking.id)
 
         logger.info(
             "booking.cancelled",

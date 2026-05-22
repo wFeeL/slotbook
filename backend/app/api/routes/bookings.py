@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from app.api.deps import CurrentUser, SessionDep
 from app.db.enums import BookingSource, BookingStatus
@@ -8,6 +8,7 @@ from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.schemas.bookings import BookingCreate, BookingRead
 from app.services.booking_service import BookingService
+from app.services.notification_service import NotificationService
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -17,6 +18,7 @@ async def create_booking(
     body: BookingCreate,
     user: CurrentUser,
     session: SessionDep,
+    request: Request,
 ) -> BookingRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
@@ -29,6 +31,9 @@ async def create_booking(
         starts_at=body.starts_at,
         client_comment=body.client_comment,
         source=BookingSource.MINI_APP,
+    )
+    await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+        booking.id
     )
     return BookingRead.model_validate(booking)
 
@@ -48,6 +53,7 @@ async def cancel_booking(
     booking_id: int,
     user: CurrentUser,
     session: SessionDep,
+    request: Request,
 ) -> BookingRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
@@ -56,5 +62,8 @@ async def cancel_booking(
         actor_user_id=user.id,
         actor_role=user.role,
         booking_id=booking_id,
+    )
+    await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+        booking.id
     )
     return BookingRead.model_validate(booking)

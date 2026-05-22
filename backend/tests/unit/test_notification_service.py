@@ -31,8 +31,11 @@ async def seed_booking_and_notifications(db_session, business, client_user, admi
     for d in range(7):
         db_session.add(
             WorkingHours(
-                staff_id=staff.id, weekday=d,
-                start_time=time(0, 0), end_time=time(23, 0), is_active=True
+                staff_id=staff.id,
+                weekday=d,
+                start_time=time(0, 0),
+                end_time=time(23, 0),
+                is_active=True,
             )
         )
     start = (datetime.now(UTC) + timedelta(days=2)).replace(minute=0, second=0, microsecond=0)
@@ -48,20 +51,22 @@ async def seed_booking_and_notifications(db_session, business, client_user, admi
     )
     db_session.add(b)
     await db_session.flush()
-    db_session.add_all([
-        Notification(
-            booking_id=b.id,
-            user_id=client_user.id,
-            notification_type=NotificationType.BOOKING_CREATED_CLIENT,
-            notification_status=NotificationStatus.PENDING,
-        ),
-        Notification(
-            booking_id=b.id,
-            user_id=admin_user.id,
-            notification_type=NotificationType.BOOKING_CREATED_ADMIN,
-            notification_status=NotificationStatus.PENDING,
-        ),
-    ])
+    db_session.add_all(
+        [
+            Notification(
+                booking_id=b.id,
+                user_id=client_user.id,
+                notification_type=NotificationType.BOOKING_CREATED_CLIENT,
+                notification_status=NotificationStatus.PENDING,
+            ),
+            Notification(
+                booking_id=b.id,
+                user_id=admin_user.id,
+                notification_type=NotificationType.BOOKING_CREATED_ADMIN,
+                notification_status=NotificationStatus.PENDING,
+            ),
+        ]
+    )
     await db_session.commit()
     return b
 
@@ -73,10 +78,14 @@ async def test_dispatch_marks_sent_on_success(db_session, seed_booking_and_notif
 
     db_session.sync_session.expire_all()
     rows = (
-        await db_session.execute(
-            select(Notification).where(Notification.booking_id == booking_id)
+        (
+            await db_session.execute(
+                select(Notification).where(Notification.booking_id == booking_id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert {r.notification_status for r in rows} == {NotificationStatus.SENT}
     assert all(r.sent_at is not None for r in rows)
 
@@ -92,10 +101,14 @@ async def test_dispatch_marks_failed_on_telegram_error(db_session, seed_booking_
 
     db_session.sync_session.expire_all()
     rows = (
-        await db_session.execute(
-            select(Notification).where(Notification.booking_id == booking_id)
+        (
+            await db_session.execute(
+                select(Notification).where(Notification.booking_id == booking_id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert {r.notification_status for r in rows} == {NotificationStatus.FAILED}
     assert all(r.error_message for r in rows)
 
@@ -104,10 +117,14 @@ async def test_dispatch_no_op_when_no_pending(db_session, seed_booking_and_notif
     booking_id = seed_booking_and_notifications.id
     bot = AsyncMock(spec=Bot)
     rows = (
-        await db_session.execute(
-            select(Notification).where(Notification.booking_id == booking_id)
+        (
+            await db_session.execute(
+                select(Notification).where(Notification.booking_id == booking_id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for r in rows:
         r.notification_status = NotificationStatus.SENT
     await db_session.commit()
