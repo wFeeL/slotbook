@@ -19,6 +19,7 @@ import { pushToast } from '@/shared/store/toast-store';
 import { showConfirm } from '@/shared/telegram/hooks';
 import { request } from '@/shared/api/client';
 import { AdminBookingReadSchema, type AdminBookingRead } from '@/shared/api/types';
+import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
 
 function useAdminBookingDetail(id: number) {
   return useQuery({
@@ -153,7 +154,7 @@ export function AdminBookingDetailPage() {
               <div className="text-ink text-sm mt-2 italic">«{b.client_comment}»</div>
             )}
           </div>
-          <Badge tone="sage">{b.status}</Badge>
+          <Badge tone={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
         </div>
       </Card>
 

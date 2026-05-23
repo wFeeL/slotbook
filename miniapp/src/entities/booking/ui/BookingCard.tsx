@@ -2,24 +2,23 @@ import { Card } from '@/shared/ui/Card';
 import { cn } from '@/shared/lib/cn';
 import { formatLocalDate, formatLocalTime } from '@/shared/lib/date';
 import type { BookingRead } from '@/shared/api/types';
+import { bookingStatusLabel, bookingStatusTone } from '../lib/status';
 
 interface Props {
   booking: BookingRead;
   onSelect?: () => void;
 }
 
-const STATUS_LABEL: Record<BookingRead['status'], { text: string; color: string }> = {
-  pending: { text: 'Ожидает', color: 'text-clay' },
-  confirmed: { text: 'Подтверждена', color: 'text-sage' },
-  completed: { text: 'Завершена', color: 'text-sienna' },
-  cancelled_by_client: { text: 'Отменена', color: 'text-sienna' },
-  cancelled_by_admin: { text: 'Отменена администратором', color: 'text-sienna' },
-  no_show: { text: 'Не пришли', color: 'text-clay' },
-  rescheduled: { text: 'Перенесена', color: 'text-sienna' },
+const TONE_TEXT: Record<ReturnType<typeof bookingStatusTone>, string> = {
+  sage: 'text-sage',
+  clay: 'text-clay',
+  sienna: 'text-sienna',
+  rose: 'text-rose-deep',
+  sand: 'text-sienna',
 };
 
 export function BookingCard({ booking, onSelect }: Props) {
-  const status = STATUS_LABEL[booking.status];
+  const tone = bookingStatusTone(booking.status);
   return (
     <Card
       interactive={Boolean(onSelect)}
@@ -36,7 +35,9 @@ export function BookingCard({ booking, onSelect }: Props) {
             {formatLocalTime(booking.starts_at)}
           </span>
         </div>
-        <span className={cn('text-sm font-semibold', status.color)}>{status.text}</span>
+        <span className={cn('text-sm font-semibold', TONE_TEXT[tone])}>
+          {bookingStatusLabel(booking.status)}
+        </span>
       </div>
     </Card>
   );

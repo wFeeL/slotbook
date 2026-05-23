@@ -7,6 +7,8 @@ import { Button } from '@/shared/ui/Button';
 import { useAdminBookings } from '@/entities/admin-booking/api';
 import { useAdminStaff } from '@/entities/admin-staff/api';
 import { cn } from '@/shared/lib/cn';
+import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
+import type { BookingStatus } from '@/shared/api/types';
 
 function startOfWeek(d: Date): Date {
   const x = new Date(d);
@@ -163,18 +165,8 @@ export function AdminCalendarPage() {
                               {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                             </div>
                           </div>
-                          <Badge
-                            tone={
-                              b.status === 'pending' || b.status === 'confirmed'
-                                ? 'sage'
-                                : b.status === 'completed'
-                                  ? 'sienna'
-                                  : b.status === 'no_show'
-                                    ? 'rose'
-                                    : 'clay'
-                            }
-                          >
-                            {b.status}
+                          <Badge tone={bookingStatusTone(b.status as BookingStatus)}>
+                            {bookingStatusLabel(b.status as BookingStatus)}
                           </Badge>
                         </div>
                       </Card>
