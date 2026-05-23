@@ -6,6 +6,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { Skeleton } from './shared/ui/Skeleton';
 import { ToastContainer } from './shared/ui/Toast';
 import { RequireAdmin } from './features/admin-guard/RequireAdmin';
+import { RequireStaff } from './features/staff-guard/RequireStaff';
 import { AuthGate } from './features/auth/AuthGate';
 
 // Client-side lazy chunks
@@ -32,6 +33,9 @@ const AdminCalendarPage = lazy(() => import('./pages/admin/AdminCalendarPage').t
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
 const AdminStatisticsPage = lazy(() => import('./pages/admin/AdminStatisticsPage').then((m) => ({ default: m.AdminStatisticsPage })));
 const AdminTeamPage = lazy(() => import('./pages/admin/AdminTeamPage').then((m) => ({ default: m.AdminTeamPage })));
+
+// Staff cabinet chunks
+const StaffCabinetPage = lazy(() => import('./pages/staff/StaffCabinetPage').then((m) => ({ default: m.StaffCabinetPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,6 +96,15 @@ export function App() {
                 <Route path="statistics" element={<AdminStatisticsPage />} />
                 <Route path="team" element={<AdminTeamPage />} />
               </Route>
+
+              <Route
+                path="/me"
+                element={
+                  <RequireStaff>
+                    <StaffCabinetPage />
+                  </RequireStaff>
+                }
+              />
 
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
