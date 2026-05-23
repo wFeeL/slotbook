@@ -63,7 +63,7 @@ This creates the singleton `Business` row from your env vars and (optionally) de
 ## 5. Smoke test
 
 ```bash
-curl https://<DOMAIN>/api/v1/health
+curl https://<DOMAIN>/health
 # {"status":"ok"}
 ```
 
@@ -104,7 +104,7 @@ Backups land in `/opt/slotbook/backups/booking_YYYYMMDD_HHMMSS.sql.gz`.
 
 **Bot doesn't respond.** Check `BOT_TOKEN` is correct and `BOT_WEBHOOK_URL` matches `https://<DOMAIN>/webhook/telegram`. Re-run deploy to re-register webhook. Look at `docker compose logs bot` for the `bot.webhook_listening` line.
 
-**`5xx` from `/api/v1/health`.** Check `docker compose logs api`. Likely DB not migrated; run `./scripts/deploy.sh` again or do the migration manually:
+**`5xx` from `/health`.** Check `docker compose logs api`. Likely DB not migrated; run `./scripts/deploy.sh` again or do the migration manually:
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api uv run alembic upgrade head
 ```
