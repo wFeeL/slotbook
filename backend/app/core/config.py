@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     TEST_DATABASE_URL: str | None = None
 
     BOT_TOKEN: str = "missing"
+    BOT_USERNAME: str | None = None  # e.g. "slotbook_bot" — used for invite link generation
     BOT_ADMIN_TELEGRAM_IDS: list[int] = Field(default_factory=list)
     BOT_MODE: BotMode = BotMode.POLLING
     BOT_WEBHOOK_URL: str | None = None
