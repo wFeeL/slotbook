@@ -100,7 +100,7 @@ export const AdminBookingReadSchema = z.object({
 });
 export type AdminBookingRead = z.infer<typeof AdminBookingReadSchema>;
 
-export const ScheduleExceptionTypeSchema = z.enum(['day_off', 'custom_hours']);
+export const ScheduleExceptionTypeSchema = z.enum(['day_off', 'extra_working_time', 'blocked_time']);
 export type ScheduleExceptionTypeT = z.infer<typeof ScheduleExceptionTypeSchema>;
 
 export const WorkingHoursEntrySchema = z.object({

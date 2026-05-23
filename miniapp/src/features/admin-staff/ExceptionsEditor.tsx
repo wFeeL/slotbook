@@ -36,7 +36,7 @@ export function ExceptionsEditor({ staffId }: ExceptionsEditorProps) {
   const delMut = useDeleteException();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState('');
-  const [type, setType] = useState<'day_off' | 'custom_hours'>('day_off');
+  const [type, setType] = useState<'day_off' | 'extra_working_time' | 'blocked_time'>('day_off');
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('18:00');
   const [reason, setReason] = useState('');
@@ -52,8 +52,8 @@ export function ExceptionsEditor({ staffId }: ExceptionsEditorProps) {
         body: {
           date,
           type,
-          start_time: type === 'custom_hours' ? `${startTime}:00` : null,
-          end_time: type === 'custom_hours' ? `${endTime}:00` : null,
+          start_time: type !== 'day_off' ? `${startTime}:00` : null,
+          end_time: type !== 'day_off' ? `${endTime}:00` : null,
           reason: reason || null,
         },
       });
@@ -112,12 +112,13 @@ export function ExceptionsEditor({ staffId }: ExceptionsEditorProps) {
           <Select
             label="Тип"
             value={type}
-            onChange={(e) => setType(e.target.value as 'day_off' | 'custom_hours')}
+            onChange={(e) => setType(e.target.value as 'day_off' | 'extra_working_time' | 'blocked_time')}
           >
             <option value="day_off">Выходной</option>
-            <option value="custom_hours">Особые часы</option>
+            <option value="extra_working_time">Доп. рабочее время</option>
+            <option value="blocked_time">Перерыв</option>
           </Select>
-          {type === 'custom_hours' && (
+          {type !== 'day_off' && (
             <div className="flex gap-2">
               <Input
                 label="С"

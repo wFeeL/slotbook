@@ -161,7 +161,7 @@ export const api = {
         staffId: number,
         body: {
           date: string;
-          type: 'day_off' | 'custom_hours';
+          type: 'day_off' | 'extra_working_time' | 'blocked_time';
           start_time?: string | null;
           end_time?: string | null;
           reason?: string | null;
