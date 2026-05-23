@@ -23,12 +23,16 @@ async def tick(session_factory: SessionFactory, bot: Bot, *, limit: int = 200) -
         due = await NotificationsRepo(session).list_pending_due(now_utc, limit=limit)
         if not due:
             return 0
-        # Group by booking_id so we can fan out via NotificationService per booking
-        booking_ids = sorted({n.booking_id for n in due if n.booking_id is not None})
-        log.info("worker.tick", due_count=len(due), bookings=len(booking_ids))
-        for bid in booking_ids:
+        # Group due notifications by booking_id so we can fan out via NotificationService.
+        grouped: dict[int, list] = {}
+        for n in due:
+            if n.booking_id is None:
+                continue
+            grouped.setdefault(n.booking_id, []).append(n)
+        log.info("worker.tick", due_count=len(due), bookings=len(grouped))
+        for bid, notifs in sorted(grouped.items()):
             try:
-                await NotificationService(session, bot).dispatch_pending_for_booking(bid)
+                await NotificationService(session, bot).dispatch_notifications(bid, notifs)
                 sent += 1
             except Exception:
                 log.exception("worker.dispatch_failed", booking_id=bid)
