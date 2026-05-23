@@ -48,8 +48,15 @@ export function BookingForm({ submitting, onSubmit, onCancel }: BookingFormProps
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
-    // Compose ISO string in user's local tz; backend treats it as aware datetime.
-    const startsAt = new Date(`${date}T${time}:00`).toISOString();
+    // Build an ISO string with the admin's local UTC offset so backend records
+    // the intended wall-clock time, not a UTC-shifted one.
+    const local = new Date(`${date}T${time}:00`);
+    const offsetMin = -local.getTimezoneOffset(); // sign-flipped: + for east of UTC
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMin);
+    const offHH = String(Math.floor(abs / 60)).padStart(2, '0');
+    const offMM = String(abs % 60).padStart(2, '0');
+    const startsAt = `${date}T${time}:00${sign}${offHH}:${offMM}`;
 
     onSubmit({
       client_telegram_id: tgIdNum,
