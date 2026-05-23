@@ -4,7 +4,6 @@ import { Select } from '@/shared/ui/Select';
 export interface FilterValues {
   date: string;
   status: string;
-  staffId: string;
 }
 
 interface BookingFiltersProps {

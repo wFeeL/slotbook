@@ -24,7 +24,6 @@ export function AdminBookingsPage() {
   const [filters, setFilters] = useState<FilterValues>({
     date: todayDateString(),
     status: '',
-    staffId: '',
   });
 
   const q = useAdminBookings({
