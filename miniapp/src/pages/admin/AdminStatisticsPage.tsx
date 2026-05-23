@@ -77,7 +77,20 @@ export function AdminStatisticsPage() {
   );
   const max_staff = Math.max(...(data?.top_staff ?? []).map((s) => s.completed_count), 1);
 
+  const [downloading, setDownloading] = useState(false);
+
+  function resetDates() {
+    setFrom('');
+    setTo('');
+  }
+
   async function doExport() {
+    // Validate ordering — if both set, `to` must not be before `from`.
+    if (from && to && from > to) {
+      pushToast('error', 'Дата "По" должна быть не раньше "С"');
+      return;
+    }
+    setDownloading(true);
     try {
       const url =
         format === 'csv'
@@ -88,7 +101,9 @@ export function AdminStatisticsPage() {
       pushToast('success', 'Загружено');
       setExportOpen(false);
     } catch (e) {
-      pushToast('error', e instanceof Error ? e.message : 'Не удалось');
+      pushToast('error', e instanceof Error ? e.message : 'Не удалось скачать');
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -198,9 +213,49 @@ export function AdminStatisticsPage() {
             <option value="csv">CSV</option>
             <option value="xlsx">XLSX</option>
           </Select>
-          <Input label="С" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input label="По" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          <Button onClick={doExport}>Скачать</Button>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-end justify-between gap-2">
+              <span className="text-sienna text-sm font-semibold">Период</span>
+              {(from || to) && (
+                <button
+                  type="button"
+                  onClick={resetDates}
+                  className="text-rose text-sm font-semibold"
+                >
+                  Сбросить
+                </button>
+              )}
+            </div>
+            <Input
+              label="С"
+              type="date"
+              value={from}
+              max={to || undefined}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+            <Input
+              label="По"
+              type="date"
+              value={to}
+              min={from || undefined}
+              onChange={(e) => setTo(e.target.value)}
+            />
+            <p className="text-sienna/60 text-xs">
+              Оставьте пустым, чтобы выгрузить все записи.
+            </p>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={doExport} disabled={downloading}>
+              {downloading ? '...' : 'Скачать'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setExportOpen(false)}
+              disabled={downloading}
+            >
+              Отмена
+            </Button>
+          </div>
         </div>
       </Sheet>
     </div>
