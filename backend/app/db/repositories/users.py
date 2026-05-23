@@ -57,3 +57,31 @@ class UsersRepo:
             user.role = UserRole.ADMIN
         await self.session.flush()
         return user
+
+    async def list_for_linking(
+        self,
+        *,
+        role: UserRole | None = None,
+        linkable_only: bool = False,
+        include_user_id: int | None = None,
+    ) -> list[User]:
+        from app.db.models.staff import StaffMember
+
+        stmt = select(User)
+        if role is not None:
+            stmt = stmt.where(User.role == role)
+
+        if linkable_only:
+            linked_subq = select(StaffMember.user_id).where(
+                StaffMember.user_id.is_not(None),
+                StaffMember.is_active.is_(True),
+            )
+            if include_user_id is not None:
+                stmt = stmt.where(
+                    (User.id.not_in(linked_subq)) | (User.id == include_user_id)
+                )
+            else:
+                stmt = stmt.where(User.id.not_in(linked_subq))
+
+        stmt = stmt.order_by(User.created_at.desc()).limit(200)
+        return list((await self.session.execute(stmt)).scalars().all())

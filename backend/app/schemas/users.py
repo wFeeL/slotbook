@@ -12,3 +12,14 @@ class UserRead(BaseModel):
     last_name: str | None
     username: str | None
     role: UserRole
+
+
+class UserBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    telegram_id: int
+    first_name: str | None
+    last_name: str | None
+    username: str | None
+    role: UserRole

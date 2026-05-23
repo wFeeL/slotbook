@@ -58,6 +58,7 @@ from app.schemas.team import (
     TeamMember,
     TeamResponse,
 )
+from app.schemas.users import UserBrief
 from app.services import export_service
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
@@ -764,6 +765,22 @@ async def admin_revoke_invite(
     if not ok:
         raise NotFound("Invite not found or already used")
     await session.commit()
+
+
+@router.get("/users", response_model=list[UserBrief])
+async def admin_list_users(
+    _admin: AdminUser,
+    session: SessionDep,
+    role: UserRole | None = None,
+    linkable_only: bool = False,
+    include_user_id: int | None = None,
+) -> list[UserBrief]:
+    users = await UsersRepo(session).list_for_linking(
+        role=role,
+        linkable_only=linkable_only,
+        include_user_id=include_user_id,
+    )
+    return [UserBrief.model_validate(u) for u in users]
 
 
 # ---------------------------------------------------------------------------
