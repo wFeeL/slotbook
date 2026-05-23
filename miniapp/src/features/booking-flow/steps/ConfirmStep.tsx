@@ -87,7 +87,7 @@ export function ConfirmStep() {
       style={{ animation: 'fade-up 320ms ease-out both' }}
     >
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 05</span>
+        <span className="text-sienna text-sm font-semibold">№ 06</span>
         <h1 className="text-2xl text-ink font-display mt-1">Подтверждение</h1>
         <p className="text-sienna text-base mt-2">Проверьте детали записи</p>
       </header>

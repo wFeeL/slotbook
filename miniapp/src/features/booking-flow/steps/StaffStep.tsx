@@ -27,7 +27,7 @@ export function StaffStep() {
   return (
     <div className="px-5 pt-8 pb-32 max-w-md mx-auto" style={{ animation: 'fade-up 320ms ease-out both' }}>
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 02</span>
+        <span className="text-sienna text-sm font-semibold">№ 03</span>
         <h1 className="text-2xl text-ink font-display mt-1">Специалист</h1>
         <p className="text-sienna text-base mt-2">Кто проведёт встречу?</p>
       </header>
