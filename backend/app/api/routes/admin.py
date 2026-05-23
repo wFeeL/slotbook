@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Query, Request, status
 
 from app.api.deps import AdminUser, SessionDep
@@ -36,6 +37,8 @@ from app.schemas.services import ServiceCreate, ServiceRead, ServiceUpdate
 from app.schemas.staff import StaffCreate, StaffRead, StaffServicesUpdate, StaffUpdate
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
+
+log = structlog.get_logger()
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -309,9 +312,12 @@ async def admin_create_booking(
         await session.commit()
         await session.refresh(booking)
 
-    await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
-        booking.id
-    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
     return AdminBookingRead.model_validate(booking)
 
 
@@ -330,9 +336,12 @@ async def admin_cancel_booking(
         actor_role=admin.role,
         booking_id=booking_id,
     )
-    await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
-        booking.id
-    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
     return AdminBookingRead.model_validate(booking)
 
 

@@ -48,6 +48,10 @@ class NotificationService:
                 has_staff=staff is not None,
                 has_business=business is not None,
             )
+            for n in notifications:
+                n.notification_status = NotificationStatus.FAILED
+                n.error_message = "Required entity missing (service/staff/business)"
+            await self.session.commit()
             return
 
         settings = get_settings()

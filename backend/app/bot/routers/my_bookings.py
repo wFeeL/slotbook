@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from html import escape as _html_escape
 
 from aiogram import Router
 from aiogram.filters import Command
@@ -45,7 +46,7 @@ async def handle_my_bookings(message: Message, session: AsyncSession) -> None:
     lines = ["<b>Ваши ближайшие записи:</b>\n"]
     for b in bookings:
         svc = await ServicesRepo(session).get(b.service_id)
-        title = svc.title if svc else "?"
+        title = _html_escape(svc.title) if svc else "?"
         lines.append(f"• {_fmt_dt(b.starts_at, business.timezone)} — {title}")
 
     await message.answer("\n".join(lines), reply_markup=my_bookings_keyboard(settings.MINI_APP_URL))

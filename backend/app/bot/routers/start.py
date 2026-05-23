@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from html import escape as _html_escape
+
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
@@ -28,7 +30,7 @@ async def handle_start(message: Message, session: AsyncSession) -> None:
     )
 
     text = (
-        f"Привет, {user.first_name or 'друг'}! 👋\n\n"
+        f"Привет, {_html_escape(user.first_name or 'друг')}! 👋\n\n"
         "Здесь можно записаться на услугу, посмотреть свои записи или связаться с администратором."  # noqa: RUF001
     )
     await message.answer(text, reply_markup=main_menu_keyboard(settings.MINI_APP_URL))

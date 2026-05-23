@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import structlog
 from fastapi import APIRouter, Query, Request
 
 from app.api.deps import CurrentUser, SessionDep
@@ -9,6 +10,8 @@ from app.db.repositories.businesses import BusinessesRepo
 from app.schemas.bookings import BookingCreate, BookingRead
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
+
+log = structlog.get_logger()
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -32,9 +35,12 @@ async def create_booking(
         client_comment=body.client_comment,
         source=BookingSource.MINI_APP,
     )
-    await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
-        booking.id
-    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
     return BookingRead.model_validate(booking)
 
 
@@ -63,7 +69,10 @@ async def cancel_booking(
         actor_role=user.role,
         booking_id=booking_id,
     )
-    await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
-        booking.id
-    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
     return BookingRead.model_validate(booking)

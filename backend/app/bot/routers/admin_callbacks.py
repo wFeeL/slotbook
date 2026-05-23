@@ -38,7 +38,9 @@ async def handle_cancel_booking(callback: CallbackQuery, session: AsyncSession) 
         return
 
     business = await BusinessesRepo(session).get_singleton()
-    assert business is not None
+    if business is None:
+        await callback.answer("Сервис недоступен", show_alert=True)
+        return
 
     try:
         await BookingService(session).cancel_booking(
