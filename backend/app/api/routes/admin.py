@@ -12,6 +12,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import CannotCancelInCurrentStatus, NotFound
 from app.core.time import local_date_bounds_utc
 from app.db.enums import BookingSource, BookingStatus, UserRole
+from app.db.models.branch import Branch
 from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
@@ -19,6 +20,7 @@ from app.db.models.user import User
 from app.db.repositories.admin_invites import AdminInvitesRepo
 from app.db.repositories.audit import AuditRepo
 from app.db.repositories.bookings import BookingsRepo
+from app.db.repositories.branches import BranchesRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
 from app.db.repositories.services import ServicesRepo
@@ -34,6 +36,7 @@ from app.schemas.admin import (
     DashboardResponse,
 )
 from app.schemas.bookings import BookingReschedule
+from app.schemas.branches import BranchCreate, BranchRead, BranchUpdate
 from app.schemas.schedules import (
     ScheduleExceptionCreate,
     ScheduleExceptionRead,
@@ -71,8 +74,19 @@ async def create_service(
 ) -> ServiceRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
+    branch_id = getattr(body, "branch_id", None)
+    if branch_id is None:
+        default_branch = await BranchesRepo(session).get_default(business.id)
+        if default_branch is None:
+            raise NotFound("No active branch found; create one first")
+        branch_id = default_branch.id
+    else:
+        branch = await BranchesRepo(session).get(branch_id)
+        if branch is None or branch.business_id != business.id:
+            raise NotFound("Branch not found")
     service = Service(
         business_id=business.id,
+        branch_id=branch_id,
         title=body.title,
         description=body.description,
         duration_minutes=body.duration_minutes,
@@ -126,6 +140,7 @@ async def admin_list_staff(
         out.append(
             StaffReadWithServices(
                 id=s.id,
+                branch_id=s.branch_id,
                 name=s.name,
                 description=s.description,
                 is_active=s.is_active,
@@ -139,7 +154,22 @@ async def admin_list_staff(
 async def create_staff(body: StaffCreate, _admin: AdminUser, session: SessionDep) -> StaffRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
-    staff = StaffMember(business_id=business.id, name=body.name, description=body.description)
+    branch_id = getattr(body, "branch_id", None)
+    if branch_id is None:
+        default_branch = await BranchesRepo(session).get_default(business.id)
+        if default_branch is None:
+            raise NotFound("No active branch found; create one first")
+        branch_id = default_branch.id
+    else:
+        branch = await BranchesRepo(session).get(branch_id)
+        if branch is None or branch.business_id != business.id:
+            raise NotFound("Branch not found")
+    staff = StaffMember(
+        business_id=business.id,
+        branch_id=branch_id,
+        name=body.name,
+        description=body.description,
+    )
     StaffRepo(session).add(staff)
     await session.commit()
     await session.refresh(staff)
@@ -617,4 +647,61 @@ async def admin_revoke_invite(
     ok = await AdminInvitesRepo(session).revoke(invite_id)
     if not ok:
         raise NotFound("Invite not found or already used")
+    await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Admin branches endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/branches", response_model=list[BranchRead])
+async def admin_list_branches(_admin: AdminUser, session: SessionDep) -> list[BranchRead]:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    branches = await BranchesRepo(session).list_for_business(business.id, include_archived=True)
+    return [BranchRead.model_validate(b) for b in branches]
+
+
+@router.post("/branches", response_model=BranchRead, status_code=status.HTTP_201_CREATED)
+async def admin_create_branch(
+    body: BranchCreate, _admin: AdminUser, session: SessionDep
+) -> BranchRead:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    branch = Branch(
+        business_id=business.id,
+        name=body.name,
+        address=body.address,
+        timezone=body.timezone,
+        sort_order=body.sort_order,
+    )
+    BranchesRepo(session).add(branch)
+    await session.commit()
+    await session.refresh(branch)
+    return BranchRead.model_validate(branch)
+
+
+@router.patch("/branches/{branch_id}", response_model=BranchRead)
+async def admin_update_branch(
+    branch_id: int, body: BranchUpdate, _admin: AdminUser, session: SessionDep
+) -> BranchRead:
+    branch = await BranchesRepo(session).get(branch_id)
+    if branch is None:
+        raise NotFound("Branch not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(branch, k, v)
+    await session.commit()
+    await session.refresh(branch)
+    return BranchRead.model_validate(branch)
+
+
+@router.delete("/branches/{branch_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_archive_branch(
+    branch_id: int, _admin: AdminUser, session: SessionDep
+) -> None:
+    branch = await BranchesRepo(session).get(branch_id)
+    if branch is None:
+        raise NotFound("Branch not found")
+    branch.is_active = False
     await session.commit()

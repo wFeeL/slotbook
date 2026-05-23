@@ -8,13 +8,13 @@ from tests.conftest import auth_headers
 
 
 @pytest.mark.asyncio
-async def test_slots_smoke(client, db_session, business, client_user, settings) -> None:  # type: ignore[no-untyped-def]
+async def test_slots_smoke(client, db_session, business, branch, client_user, settings) -> None:  # type: ignore[no-untyped-def]
     from app.db.models.schedule import WorkingHours
     from app.db.models.service import Service
     from app.db.models.staff import StaffMember, StaffService
 
-    svc = Service(business_id=business.id, title="Cut", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Eve")
+    svc = Service(business_id=business.id, branch_id=branch.id, title="Cut", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch.id, name="Eve")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))

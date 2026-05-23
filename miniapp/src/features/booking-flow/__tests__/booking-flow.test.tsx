@@ -13,7 +13,9 @@ const dateStr = today.toISOString().slice(0, 10);
 function setupHandlers() {
   server.use(
     http.get('http://localhost:8000/api/v1/staff', () =>
-      HttpResponse.json([{ id: 10, name: 'Алексей', description: null, is_active: true }]),
+      HttpResponse.json([
+        { id: 10, branch_id: 1, name: 'Алексей', description: null, is_active: true },
+      ]),
     ),
     http.get('http://localhost:8000/api/v1/slots', () =>
       HttpResponse.json({
@@ -32,6 +34,7 @@ function setupHandlers() {
     http.post('http://localhost:8000/api/v1/bookings', () =>
       HttpResponse.json({
         id: 42,
+        branch_id: 1,
         service_id: 1,
         staff_id: 10,
         starts_at: `${dateStr}T10:00:00Z`,

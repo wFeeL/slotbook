@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.errors import SlotAlreadyTaken
 from app.db.enums import BookingSource, UserRole
 from app.db.models.booking import Booking
+from app.db.models.branch import Branch
 from app.db.models.business import Business
 from app.db.models.schedule import WorkingHours
 from app.db.models.service import Service
@@ -84,7 +85,7 @@ async def test_overlapping_different_starts_one_wins(db_engine) -> None:  # type
             text(
                 "TRUNCATE notifications, audit_logs, bookings, staff_services, "
                 "working_hours, schedule_exceptions, staff_members, "
-                "services, businesses, users RESTART IDENTITY CASCADE"
+                "services, branches, businesses, users RESTART IDENTITY CASCADE"
             )
         )
         await seed_session.commit()
@@ -99,8 +100,12 @@ async def test_overlapping_different_starts_one_wins(db_engine) -> None:  # type
         seed_session.add(biz)
         await seed_session.flush()
 
-        svc = Service(business_id=biz.id, title="Cut", duration_minutes=60)
-        staff = StaffMember(business_id=biz.id, name="Alex")
+        branch = Branch(business_id=biz.id, name=biz.name, timezone=biz.timezone, sort_order=0)
+        seed_session.add(branch)
+        await seed_session.flush()
+
+        svc = Service(business_id=biz.id, branch_id=branch.id, title="Cut", duration_minutes=60)
+        staff = StaffMember(business_id=biz.id, branch_id=branch.id, name="Alex")
         seed_session.add_all([svc, staff])
         await seed_session.flush()
 

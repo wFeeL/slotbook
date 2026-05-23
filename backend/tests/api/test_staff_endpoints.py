@@ -4,14 +4,14 @@ from tests.conftest import auth_headers
 
 
 @pytest.mark.asyncio
-async def test_list_staff_for_service(client, db_session, business, client_user, settings) -> None:
+async def test_list_staff_for_service(client, db_session, business, branch, client_user, settings) -> None:
     from app.db.models.service import Service
     from app.db.models.staff import StaffMember, StaffService
 
-    svc = Service(business_id=business.id, title="Cut", duration_minutes=60)
-    s1 = StaffMember(business_id=business.id, name="Alice")
-    s2 = StaffMember(business_id=business.id, name="Bob")
-    s3 = StaffMember(business_id=business.id, name="Carol")  # not linked
+    svc = Service(business_id=business.id, branch_id=branch.id, title="Cut", duration_minutes=60)
+    s1 = StaffMember(business_id=business.id, branch_id=branch.id, name="Alice")
+    s2 = StaffMember(business_id=business.id, branch_id=branch.id, name="Bob")
+    s3 = StaffMember(business_id=business.id, branch_id=branch.id, name="Carol")  # not linked
     db_session.add_all([svc, s1, s2, s3])
     await db_session.flush()
     db_session.add_all(

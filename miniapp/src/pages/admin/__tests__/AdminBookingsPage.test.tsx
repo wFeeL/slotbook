@@ -26,6 +26,7 @@ describe('AdminBookingsPage', () => {
           return HttpResponse.json([
             {
               id: 100,
+              branch_id: 1,
               client_id: 1,
               service_id: 1,
               staff_id: 1,

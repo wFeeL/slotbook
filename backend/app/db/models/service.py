@@ -28,6 +28,9 @@ class Service(Base):
     business_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False
     )
+    branch_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("branches.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)

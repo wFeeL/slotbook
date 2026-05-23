@@ -39,6 +39,7 @@ describe('api client', () => {
           return HttpResponse.json([
             {
               id: 1,
+              branch_id: 1,
               title: 'Recovered',
               description: null,
               duration_minutes: 30,

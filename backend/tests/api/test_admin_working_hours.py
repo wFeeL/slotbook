@@ -9,7 +9,7 @@ async def test_put_then_get_working_hours_round_trip(
 ) -> None:
     from app.db.models.staff import StaffMember
 
-    staff = StaffMember(business_id=business.id, name="Eve")
+    staff = StaffMember(business_id=business.id, branch_id=business._default_branch_id, name="Eve")
     db_session.add(staff)
     await db_session.commit()
     await db_session.refresh(staff)
@@ -48,7 +48,7 @@ async def test_put_working_hours_replaces_atomically(
 ) -> None:
     from app.db.models.staff import StaffMember
 
-    staff = StaffMember(business_id=business.id, name="Eve")
+    staff = StaffMember(business_id=business.id, branch_id=business._default_branch_id, name="Eve")
     db_session.add(staff)
     await db_session.commit()
     await db_session.refresh(staff)
@@ -86,7 +86,7 @@ async def test_create_and_delete_day_off_exception(
 ) -> None:
     from app.db.models.staff import StaffMember
 
-    staff = StaffMember(business_id=business.id, name="Eve")
+    staff = StaffMember(business_id=business.id, branch_id=business._default_branch_id, name="Eve")
     db_session.add(staff)
     await db_session.commit()
     await db_session.refresh(staff)

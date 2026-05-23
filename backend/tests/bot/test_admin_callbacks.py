@@ -16,8 +16,9 @@ from tests.bot.conftest import make_callback_update
 
 @pytest_asyncio.fixture
 async def seeded_booking(db_session, business, client_user):  # type: ignore[no-untyped-def]
-    svc = Service(business_id=business.id, title="X", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Eve")
+    branch_id = business._default_branch_id
+    svc = Service(business_id=business.id, branch_id=branch_id, title="X", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Eve")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))
@@ -34,6 +35,7 @@ async def seeded_booking(db_session, business, client_user):  # type: ignore[no-
     start = (datetime.now(UTC) + timedelta(days=2)).replace(minute=0, second=0, microsecond=0)
     b = Booking(
         business_id=business.id,
+        branch_id=branch_id,
         client_id=client_user.id,
         staff_id=staff.id,
         service_id=svc.id,

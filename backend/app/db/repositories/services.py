@@ -10,12 +10,15 @@ class ServicesRepo:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def list_active(self, business_id: int) -> list[Service]:
-        stmt = (
-            select(Service)
-            .where(Service.business_id == business_id, Service.is_active.is_(True))
-            .order_by(Service.sort_order, Service.title)
+    async def list_active(
+        self, business_id: int, branch_id: int | None = None
+    ) -> list[Service]:
+        stmt = select(Service).where(
+            Service.business_id == business_id, Service.is_active.is_(True)
         )
+        if branch_id is not None:
+            stmt = stmt.where(Service.branch_id == branch_id)
+        stmt = stmt.order_by(Service.sort_order, Service.title)
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def get(self, service_id: int) -> Service | None:

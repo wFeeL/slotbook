@@ -7,6 +7,7 @@ class ServiceRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    branch_id: int
     title: str
     description: str | None
     duration_minutes: int
@@ -16,6 +17,7 @@ class ServiceRead(BaseModel):
 
 
 class ServiceCreate(BaseModel):
+    branch_id: int | None = None
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
     duration_minutes: int = Field(gt=0, le=24 * 60)
@@ -24,6 +26,7 @@ class ServiceCreate(BaseModel):
 
 
 class ServiceUpdate(BaseModel):
+    branch_id: int | None = None
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     duration_minutes: int | None = Field(default=None, gt=0, le=24 * 60)

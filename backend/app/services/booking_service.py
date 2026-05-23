@@ -133,6 +133,11 @@ class BookingService:
         if not await StaffRepo(self.session).offers_service(staff_id, service_id):
             raise StaffDoesNotOfferService()
 
+        # 5b. Cross-branch consistency
+        if service.branch_id != staff.branch_id:
+            raise NotFound("Service and staff belong to different branches")
+        booking_branch_id = service.branch_id
+
         # 6. Calculate ends_at
         ends_at_utc = starts_at_utc + timedelta(minutes=service.duration_minutes)
 
@@ -182,6 +187,7 @@ class BookingService:
         # 9. Insert the booking
         booking = Booking(
             business_id=business.id,
+            branch_id=booking_branch_id,
             client_id=client_id,
             staff_id=staff_id,
             service_id=service_id,

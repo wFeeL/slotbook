@@ -10,7 +10,9 @@ class StaffRepo:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def list_for_service(self, business_id: int, service_id: int) -> list[StaffMember]:
+    async def list_for_service(
+        self, business_id: int, service_id: int, branch_id: int | None = None
+    ) -> list[StaffMember]:
         stmt = (
             select(StaffMember)
             .join(StaffService, StaffMember.id == StaffService.staff_id)
@@ -19,8 +21,10 @@ class StaffRepo:
                 StaffMember.is_active.is_(True),
                 StaffService.service_id == service_id,
             )
-            .order_by(StaffMember.name)
         )
+        if branch_id is not None:
+            stmt = stmt.where(StaffMember.branch_id == branch_id)
+        stmt = stmt.order_by(StaffMember.name)
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def list_all(self, business_id: int) -> list[StaffMember]:

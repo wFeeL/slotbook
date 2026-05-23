@@ -24,6 +24,7 @@ class AdminBookingCreate(BaseModel):
 class AdminBookingRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    branch_id: int
     client_id: int
     service_id: int
     staff_id: int

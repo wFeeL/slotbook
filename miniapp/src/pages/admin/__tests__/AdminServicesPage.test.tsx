@@ -23,6 +23,7 @@ describe('AdminServicesPage', () => {
         HttpResponse.json([
           {
             id: 1,
+            branch_id: 1,
             title: 'Стрижка',
             description: null,
             duration_minutes: 60,

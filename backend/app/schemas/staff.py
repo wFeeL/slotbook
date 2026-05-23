@@ -5,17 +5,20 @@ class StaffRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    branch_id: int
     name: str
     description: str | None
     is_active: bool
 
 
 class StaffCreate(BaseModel):
+    branch_id: int | None = None
     name: str = Field(min_length=1, max_length=255)
     description: str | None = None
 
 
 class StaffUpdate(BaseModel):
+    branch_id: int | None = None
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     is_active: bool | None = None
@@ -29,6 +32,7 @@ class StaffReadWithServices(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    branch_id: int
     name: str
     description: str | None
     is_active: bool

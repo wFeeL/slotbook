@@ -25,6 +25,9 @@ class StaffMember(Base):
     business_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False
     )
+    branch_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("branches.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
     user_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="SET NULL")
     )

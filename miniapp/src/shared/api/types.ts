@@ -21,8 +21,19 @@ export const TelegramAuthResponseSchema = z.object({
 });
 export type TelegramAuthResponse = z.infer<typeof TelegramAuthResponseSchema>;
 
+export const BranchReadSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  address: z.string().nullable(),
+  timezone: z.string(),
+  is_active: z.boolean(),
+  sort_order: z.number(),
+});
+export type BranchRead = z.infer<typeof BranchReadSchema>;
+
 export const ServiceReadSchema = z.object({
   id: z.number(),
+  branch_id: z.number(),
   title: z.string(),
   description: z.string().nullable(),
   duration_minutes: z.number(),
@@ -34,6 +45,7 @@ export type ServiceRead = z.infer<typeof ServiceReadSchema>;
 
 export const StaffReadSchema = z.object({
   id: z.number(),
+  branch_id: z.number(),
   name: z.string(),
   description: z.string().nullable(),
   is_active: z.boolean(),
@@ -68,6 +80,7 @@ export type BookingStatus = z.infer<typeof BookingStatusSchema>;
 
 export const BookingReadSchema = z.object({
   id: z.number(),
+  branch_id: z.number(),
   service_id: z.number(),
   staff_id: z.number(),
   starts_at: z.string(),
@@ -89,6 +102,7 @@ export const ErrorDetailSchema = z.object({
 
 export const AdminBookingReadSchema = z.object({
   id: z.number(),
+  branch_id: z.number(),
   client_id: z.number(),
   service_id: z.number(),
   staff_id: z.number(),
@@ -135,6 +149,7 @@ export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
 
 export const StaffReadWithServicesSchema = z.object({
   id: z.number(),
+  branch_id: z.number(),
   name: z.string(),
   description: z.string().nullable(),
   is_active: z.boolean(),

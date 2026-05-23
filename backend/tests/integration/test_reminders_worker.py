@@ -14,6 +14,7 @@ from app.db.enums import (
     NotificationType,
 )
 from app.db.models.booking import Booking
+from app.db.models.branch import Branch
 from app.db.models.business import Business
 from app.db.models.notification import Notification
 from app.db.models.schedule import WorkingHours
@@ -38,12 +39,17 @@ async def world(db_session):
     db_session.add(biz)
     await db_session.flush()
 
+    branch = Branch(business_id=biz.id, name=biz.name, timezone=biz.timezone, sort_order=0)
+    db_session.add(branch)
+    await db_session.flush()
+
     client = User(telegram_id=777, role="client", first_name="Tester")
     db_session.add(client)
     await db_session.flush()
 
     service = Service(
         business_id=biz.id,
+        branch_id=branch.id,
         title="Cut",
         duration_minutes=60,
         is_active=True,
@@ -52,7 +58,7 @@ async def world(db_session):
     db_session.add(service)
     await db_session.flush()
 
-    staff = StaffMember(business_id=biz.id, name="Alex", is_active=True)
+    staff = StaffMember(business_id=biz.id, branch_id=branch.id, name="Alex", is_active=True)
     db_session.add(staff)
     await db_session.flush()
 
@@ -71,6 +77,7 @@ async def world(db_session):
     starts_at = starts_at.replace(minute=0, second=0, microsecond=0)
     booking = Booking(
         business_id=biz.id,
+        branch_id=branch.id,
         client_id=client.id,
         service_id=service.id,
         staff_id=staff.id,

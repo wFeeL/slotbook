@@ -21,6 +21,7 @@ export function AdminServiceFormPage() {
   useEffect(() => {
     if (isEdit && existing) {
       setInitial({
+        branch_id: existing.branch_id,
         title: existing.title,
         description: existing.description ?? '',
         duration_minutes: existing.duration_minutes,
@@ -41,6 +42,7 @@ export function AdminServiceFormPage() {
         await update.mutateAsync({
           id,
           patch: {
+            ...(values.branch_id != null ? { branch_id: values.branch_id } : {}),
             title: values.title,
             description: values.description || null,
             duration_minutes: values.duration_minutes,
@@ -51,6 +53,7 @@ export function AdminServiceFormPage() {
         });
       } else {
         await create.mutateAsync({
+          branch_id: values.branch_id,
           title: values.title,
           description: values.description || null,
           duration_minutes: values.duration_minutes,

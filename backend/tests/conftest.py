@@ -15,6 +15,7 @@ from app.core.config import Settings, get_settings
 from app.core.security import issue_jwt
 from app.db.base import Base
 from app.db.enums import UserRole
+from app.db.models.branch import Branch
 from app.db.models.business import Business
 from app.db.models.user import User
 from app.db.session import get_session
@@ -187,7 +188,32 @@ async def business(db_session: AsyncSession) -> Business:
     db_session.add(biz)
     await db_session.commit()
     await db_session.refresh(biz)
+    # Bootstrap a default branch so legacy fixtures that create
+    # Service/StaffMember/Booking can rely on a branch existing.
+    default_branch = Branch(
+        business_id=biz.id, name=biz.name, timezone=biz.timezone, sort_order=0
+    )
+    db_session.add(default_branch)
+    await db_session.commit()
+    await db_session.refresh(default_branch)
+    # Attach for fixtures/tests that want to reuse it.
+    biz._default_branch_id = default_branch.id  # type: ignore[attr-defined]
     return biz
+
+
+@pytest_asyncio.fixture
+async def branch(db_session: AsyncSession, business: Business) -> Branch:
+    """Return the default branch created alongside the business fixture."""
+    branch_id = getattr(business, "_default_branch_id", None)
+    if branch_id is not None:
+        existing = await db_session.get(Branch, branch_id)
+        if existing is not None:
+            return existing
+    br = Branch(business_id=business.id, name=business.name, timezone=business.timezone, sort_order=0)
+    db_session.add(br)
+    await db_session.commit()
+    await db_session.refresh(br)
+    return br
 
 
 @pytest_asyncio.fixture

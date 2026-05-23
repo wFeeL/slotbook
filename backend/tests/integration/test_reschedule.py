@@ -23,8 +23,9 @@ async def _seed(db_session, business):  # type: ignore[no-untyped-def]
     from app.db.models.service import Service
     from app.db.models.staff import StaffMember, StaffService
 
-    svc = Service(business_id=business.id, title="Haircut", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Bob")
+    branch_id = business._default_branch_id
+    svc = Service(business_id=business.id, branch_id=branch_id, title="Haircut", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Bob")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))

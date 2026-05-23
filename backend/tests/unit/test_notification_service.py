@@ -23,8 +23,9 @@ from app.services.notification_service import NotificationService
 
 @pytest.fixture
 async def seed_booking_and_notifications(db_session, business, client_user, admin_user):
-    svc = Service(business_id=business.id, title="Cut", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Eve")
+    branch_id = business._default_branch_id
+    svc = Service(business_id=business.id, branch_id=branch_id, title="Cut", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Eve")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))
@@ -41,6 +42,7 @@ async def seed_booking_and_notifications(db_session, business, client_user, admi
     start = (datetime.now(UTC) + timedelta(days=2)).replace(minute=0, second=0, microsecond=0)
     b = Booking(
         business_id=business.id,
+        branch_id=branch_id,
         client_id=client_user.id,
         staff_id=staff.id,
         service_id=svc.id,
