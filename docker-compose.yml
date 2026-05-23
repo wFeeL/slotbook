@@ -1,4 +1,18 @@
 services:
+  migrate:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://booking:booking@postgres:5432/booking
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uv run alembic upgrade head
+    restart: "no"
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+
   api:
     build: ./backend
     env_file: ./backend/.env
@@ -10,6 +24,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
     volumes:
       - ./backend:/app
@@ -23,6 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       api:
         condition: service_started
     command: uv run python main_bot.py
@@ -40,6 +58,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     command: uv run python main_worker.py
     restart: unless-stopped
     volumes:
