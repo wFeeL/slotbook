@@ -252,6 +252,36 @@ async def superadmin_user(db_session: AsyncSession) -> User:
     return user
 
 
+@pytest_asyncio.fixture
+async def staff_user(db_session: AsyncSession) -> User:
+    user = User(
+        telegram_id=4004,
+        first_name="Master",
+        role=UserRole.STAFF,
+        last_seen_at=datetime.now(UTC),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest_asyncio.fixture
+async def linked_staff(db_session: AsyncSession, business: Business, staff_user: User):
+    from app.db.models.staff import StaffMember
+    staff = StaffMember(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        name="Master",
+        user_id=staff_user.id,
+        is_active=True,
+    )
+    db_session.add(staff)
+    await db_session.commit()
+    await db_session.refresh(staff)
+    return staff
+
+
 def auth_headers(user: User, settings: Settings) -> dict[str, str]:
     from datetime import timedelta
 
