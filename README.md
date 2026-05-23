@@ -96,6 +96,21 @@ Put your Telegram numeric ID in `BOT_ADMIN_TELEGRAM_IDS` (comma-separated) in `.
 
 Reminders (24h / 2h before booking) are coming in sub-project 5.
 
+## Mini App (frontend)
+
+The client interface is a Telegram Mini App served from `miniapp/`. See `miniapp/README.md` for full setup; quick start:
+
+```bash
+cd miniapp
+npm install
+cp .env.example .env
+npm run dev   # http://localhost:5173
+```
+
+The dev server proxies `/api/*` to `http://localhost:8000` so just `docker compose up -d postgres api` is enough.
+
+To open inside Telegram during development, you need an HTTPS tunnel — `cloudflared` or `ngrok` pointing at `:5173` — and then set the Mini App URL in @BotFather (or set the inline keyboard `web_app` URL in `BOT_TOKEN`'s bot configuration). The local browser-preview supports `?devToken=...` to bypass Telegram auth.
+
 ## Environment variables
 
 | Variable | Default | Purpose |

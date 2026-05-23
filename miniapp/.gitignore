@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+.vite/
+coverage/
+miniapp/*.tsbuildinfo
+*.tsbuildinfo
+vitest.config.d.ts
+vitest.config.js

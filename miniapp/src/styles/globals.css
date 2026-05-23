@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+@import './fonts.css';
+
+@theme {
+  /* Color tokens — usable as bg-cream, text-ink, etc. */
+  --color-cream: #FAF6F0;
+  --color-sand: #E8D5C4;
+  --color-shell: #FFFFFF;
+  --color-sienna: #B8917A;
+  --color-ink: #3A2E26;
+  --color-rose: #D4736E;
+  --color-rose-deep: #B85A55;
+  --color-sage: #8BA888;
+  --color-clay: #C46A4B;
+
+  /* Fonts */
+  --font-display: 'Caveat', cursive;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
+  /* Custom shadow */
+  --shadow-warm: 0 4px 16px -4px rgba(58, 46, 38, 0.08);
+  --shadow-warm-lg: 0 12px 32px -8px rgba(58, 46, 38, 0.12);
+
+  /* Custom border radius */
+  --radius-card: 20px;
+
+  /* Custom font sizes */
+  --text-display: 2.5rem;
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Account for Telegram safe areas */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  button {
+    font-family: inherit;
+  }
+  /* Focus ring for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--color-rose);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@keyframes blob-morph {
+  0%, 100% { d: path('M40,0 C62,5 70,30 65,55 C60,75 40,90 20,80 C0,72 -5,45 5,25 C12,8 25,-3 40,0 Z'); }
+  33% { d: path('M40,0 C55,8 75,25 72,50 C68,68 50,82 28,78 C8,72 -2,50 2,28 C8,10 22,-2 40,0 Z'); }
+  66% { d: path('M40,0 C60,3 78,30 70,60 C62,80 38,88 18,75 C2,65 -5,40 8,20 C18,5 28,-2 40,0 Z'); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 0.30; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}

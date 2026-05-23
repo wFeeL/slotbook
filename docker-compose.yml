@@ -49,5 +49,16 @@ services:
     ports:
       - "6379:6379"
 
+  miniapp:
+    build:
+      context: ./miniapp
+      args:
+        VITE_API_BASE_URL: /api
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "5174:80"
+
 volumes:
   postgres_data:
