@@ -88,6 +88,8 @@ class Settings(BaseSettings):
                 raise ValueError("BOT_TOKEN must be set in production")
             if self.JWT_SECRET in {"change_me", "change_me_in_real_env"}:
                 raise ValueError("JWT_SECRET must be set to a real value in production")
+            if len(self.JWT_SECRET) < 32:
+                raise ValueError("JWT_SECRET must be at least 32 chars in prod")
             if self.BOT_MODE != BotMode.WEBHOOK:
                 raise ValueError("BOT_MODE must be 'webhook' in production")
             if not self.BOT_WEBHOOK_URL or not self.BOT_WEBHOOK_URL.startswith("https://"):
