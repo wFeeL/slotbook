@@ -51,3 +51,17 @@ export function useAdminCancelBooking() {
     },
   });
 }
+
+export function useAdminRescheduleBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, startsAt }: { id: number; startsAt: string }) =>
+      api.admin.bookings.reschedule(id, startsAt),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'booking'] });
+      qc.invalidateQueries({ queryKey: adminDashboardKeys.root() });
+      qc.invalidateQueries({ queryKey: ['slots'] });
+    },
+  });
+}
