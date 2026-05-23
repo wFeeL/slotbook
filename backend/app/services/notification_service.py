@@ -91,12 +91,20 @@ class NotificationService:
                 n.notification_status = NotificationStatus.SENT
                 n.sent_at = datetime.now(UTC)
             except TelegramAPIError as exc:
-                n.notification_status = NotificationStatus.FAILED
-                n.error_message = str(exc)[:1000]
+                from app.services.notification_retry import MAX_RETRIES, next_retry_at
+                if n.retry_count + 1 >= MAX_RETRIES:
+                    n.notification_status = NotificationStatus.FAILED
+                    n.error_message = str(exc)[:1000]
+                else:
+                    n.retry_count += 1
+                    n.next_retry_at = next_retry_at(n.retry_count - 1)
+                    n.error_message = str(exc)[:1000]
                 log.warning(
                     "notification.send_failed",
                     id=n.id,
                     type=n.notification_type.value,
+                    retry_count=n.retry_count,
+                    will_retry=n.notification_status == NotificationStatus.PENDING,
                     error=str(exc),
                 )
 

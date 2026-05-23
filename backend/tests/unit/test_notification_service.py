@@ -92,6 +92,22 @@ async def test_dispatch_marks_sent_on_success(db_session, seed_booking_and_notif
 
 async def test_dispatch_marks_failed_on_telegram_error(db_session, seed_booking_and_notifications):
     booking_id = seed_booking_and_notifications.id
+    # Bump retry_count to MAX_RETRIES - 1 so this attempt is the terminal one.
+    from app.services.notification_retry import MAX_RETRIES
+
+    rows_pre = (
+        (
+            await db_session.execute(
+                select(Notification).where(Notification.booking_id == booking_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for r in rows_pre:
+        r.retry_count = MAX_RETRIES - 1
+    await db_session.commit()
+
     bot = AsyncMock(spec=Bot)
     # Construct a TelegramBadRequest with method=SendMessage(chat_id=1, text="x") to satisfy its constructor.
     err = TelegramBadRequest(method=SendMessage(chat_id=1, text="x"), message="bot blocked")
