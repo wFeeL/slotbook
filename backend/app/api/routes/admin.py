@@ -35,7 +35,13 @@ from app.schemas.schedules import (
     WorkingHoursReplace,
 )
 from app.schemas.services import ServiceCreate, ServiceRead, ServiceUpdate
-from app.schemas.staff import StaffCreate, StaffRead, StaffServicesUpdate, StaffUpdate
+from app.schemas.staff import (
+    StaffCreate,
+    StaffRead,
+    StaffReadWithServices,
+    StaffServicesUpdate,
+    StaffUpdate,
+)
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
 
@@ -87,6 +93,31 @@ async def delete_service(service_id: int, _admin: AdminUser, session: SessionDep
         raise NotFound("Service not found")
     await repo.soft_delete(service)
     await session.commit()
+
+
+@router.get("/staff", response_model=list[StaffReadWithServices])
+async def admin_list_staff(
+    _admin: AdminUser,
+    session: SessionDep,
+    include_archived: bool = True,
+) -> list[StaffReadWithServices]:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    repo = StaffRepo(session)
+    staff = await repo.list_for_business(business.id, include_archived=include_archived)
+    out: list[StaffReadWithServices] = []
+    for s in staff:
+        sids = await repo.list_service_ids(s.id)
+        out.append(
+            StaffReadWithServices(
+                id=s.id,
+                name=s.name,
+                description=s.description,
+                is_active=s.is_active,
+                service_ids=sids,
+            )
+        )
+    return out
 
 
 @router.post("/staff", response_model=StaffRead, status_code=status.HTTP_201_CREATED)

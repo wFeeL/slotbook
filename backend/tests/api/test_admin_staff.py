@@ -54,3 +54,52 @@ async def test_admin_delete_soft_deletes(
     assert response.status_code == 204
     await db_session.refresh(staff)
     assert staff.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_admin_list_staff_returns_service_ids(
+    client, db_session, business, admin_user, settings
+) -> None:
+    from app.db.models.service import Service
+    from app.db.models.staff import StaffMember, StaffService
+
+    svc1 = Service(business_id=business.id, title="X", duration_minutes=30)
+    svc2 = Service(business_id=business.id, title="Y", duration_minutes=60)
+    db_session.add_all([svc1, svc2])
+    await db_session.flush()
+
+    staff_a = StaffMember(business_id=business.id, name="A", is_active=True)
+    staff_b = StaffMember(business_id=business.id, name="B", is_active=False)  # archived
+    db_session.add_all([staff_a, staff_b])
+    await db_session.flush()
+
+    db_session.add(StaffService(staff_id=staff_a.id, service_id=svc1.id))
+    db_session.add(StaffService(staff_id=staff_a.id, service_id=svc2.id))
+    await db_session.commit()
+
+    # include_archived=true (default) returns both
+    response = await client.get(
+        "/api/v1/admin/staff",
+        headers=auth_headers(admin_user, settings),
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    ids = {row["id"] for row in data}
+    assert staff_a.id in ids and staff_b.id in ids
+
+    row_a = next(r for r in data if r["id"] == staff_a.id)
+    assert sorted(row_a["service_ids"]) == sorted([svc1.id, svc2.id])
+    assert row_a["is_active"] is True
+
+    row_b = next(r for r in data if r["id"] == staff_b.id)
+    assert row_b["service_ids"] == []
+    assert row_b["is_active"] is False
+
+    # include_archived=false hides archived staff
+    response = await client.get(
+        "/api/v1/admin/staff?include_archived=false",
+        headers=auth_headers(admin_user, settings),
+    )
+    assert response.status_code == 200
+    ids = {row["id"] for row in response.json()}
+    assert staff_a.id in ids and staff_b.id not in ids

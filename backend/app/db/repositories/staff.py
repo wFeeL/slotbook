@@ -50,3 +50,16 @@ class StaffRepo:
             .limit(1)
         )
         return (await self.session.execute(stmt)).scalar_one_or_none() is not None
+
+    async def list_for_business(
+        self, business_id: int, include_archived: bool = True
+    ) -> list[StaffMember]:
+        stmt = select(StaffMember).where(StaffMember.business_id == business_id)
+        if not include_archived:
+            stmt = stmt.where(StaffMember.is_active.is_(True))
+        stmt = stmt.order_by(StaffMember.id)
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def list_service_ids(self, staff_id: int) -> list[int]:
+        stmt = select(StaffService.service_id).where(StaffService.staff_id == staff_id)
+        return list((await self.session.execute(stmt)).scalars().all())
