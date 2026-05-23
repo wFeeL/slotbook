@@ -22,8 +22,9 @@ async def setup(db_session, business):  # type: ignore[no-untyped-def]
     from app.db.models.service import Service
     from app.db.models.staff import StaffMember, StaffService
 
-    svc = Service(business_id=business.id, title="Test Service", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Test Staff")
+    branch_id = business._default_branch_id
+    svc = Service(business_id=business.id, branch_id=branch_id, title="Test Service", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Test Staff")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))

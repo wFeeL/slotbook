@@ -16,8 +16,9 @@ from tests.conftest import auth_headers
 
 @pytest.fixture
 async def booking_setup(db_session, business):  # type: ignore[no-untyped-def]
-    svc = Service(business_id=business.id, title="Cut", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Eve")
+    branch_id = business._default_branch_id
+    svc = Service(business_id=business.id, branch_id=branch_id, title="Cut", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Eve")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))

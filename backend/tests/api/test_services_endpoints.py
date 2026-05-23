@@ -5,7 +5,7 @@ from tests.conftest import auth_headers
 
 @pytest.mark.asyncio
 async def test_list_services_returns_active_only(
-    client, db_session, business, client_user, settings
+    client, db_session, business, branch, client_user, settings
 ) -> None:
     from app.db.models.service import Service
 
@@ -13,6 +13,7 @@ async def test_list_services_returns_active_only(
         [
             Service(
                 business_id=business.id,
+                branch_id=branch.id,
                 title="A",
                 duration_minutes=30,
                 sort_order=2,
@@ -20,6 +21,7 @@ async def test_list_services_returns_active_only(
             ),
             Service(
                 business_id=business.id,
+                branch_id=branch.id,
                 title="B",
                 duration_minutes=60,
                 sort_order=1,
@@ -27,6 +29,7 @@ async def test_list_services_returns_active_only(
             ),
             Service(
                 business_id=business.id,
+                branch_id=branch.id,
                 title="X",
                 duration_minutes=60,
                 sort_order=0,

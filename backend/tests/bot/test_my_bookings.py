@@ -21,8 +21,9 @@ async def test_my_bookings_empty(feed, mock_bot, business, client_user) -> None:
 async def test_my_bookings_lists_upcoming(
     feed, db_session, business, client_user, mock_bot
 ) -> None:
-    svc = Service(business_id=business.id, title="Cut", duration_minutes=60)
-    staff = StaffMember(business_id=business.id, name="Eve")
+    branch_id = business._default_branch_id
+    svc = Service(business_id=business.id, branch_id=branch_id, title="Cut", duration_minutes=60)
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Eve")
     db_session.add_all([svc, staff])
     await db_session.flush()
     db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))
@@ -41,6 +42,7 @@ async def test_my_bookings_lists_upcoming(
     db_session.add(
         Booking(
             business_id=business.id,
+            branch_id=branch_id,
             client_id=client_user.id,
             staff_id=staff.id,
             service_id=svc.id,

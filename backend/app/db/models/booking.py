@@ -30,6 +30,9 @@ class Booking(Base):
     business_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False
     )
+    branch_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("branches.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
     client_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )

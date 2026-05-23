@@ -9,8 +9,9 @@ async def test_admin_create_and_replace_services(
 ) -> None:
     from app.db.models.service import Service
 
-    svc1 = Service(business_id=business.id, title="A", duration_minutes=30)
-    svc2 = Service(business_id=business.id, title="B", duration_minutes=60)
+    branch_id = business._default_branch_id
+    svc1 = Service(business_id=business.id, branch_id=branch_id, title="A", duration_minutes=30)
+    svc2 = Service(business_id=business.id, branch_id=branch_id, title="B", duration_minutes=60)
     db_session.add_all([svc1, svc2])
     await db_session.commit()
 
@@ -42,7 +43,7 @@ async def test_admin_delete_soft_deletes(
 ) -> None:
     from app.db.models.staff import StaffMember
 
-    staff = StaffMember(business_id=business.id, name="Tmp")
+    staff = StaffMember(business_id=business.id, branch_id=business._default_branch_id, name="Tmp")
     db_session.add(staff)
     await db_session.commit()
     await db_session.refresh(staff)
@@ -63,13 +64,14 @@ async def test_admin_list_staff_returns_service_ids(
     from app.db.models.service import Service
     from app.db.models.staff import StaffMember, StaffService
 
-    svc1 = Service(business_id=business.id, title="X", duration_minutes=30)
-    svc2 = Service(business_id=business.id, title="Y", duration_minutes=60)
+    branch_id = business._default_branch_id
+    svc1 = Service(business_id=business.id, branch_id=branch_id, title="X", duration_minutes=30)
+    svc2 = Service(business_id=business.id, branch_id=branch_id, title="Y", duration_minutes=60)
     db_session.add_all([svc1, svc2])
     await db_session.flush()
 
-    staff_a = StaffMember(business_id=business.id, name="A", is_active=True)
-    staff_b = StaffMember(business_id=business.id, name="B", is_active=False)  # archived
+    staff_a = StaffMember(business_id=business.id, branch_id=branch_id, name="A", is_active=True)
+    staff_b = StaffMember(business_id=business.id, branch_id=branch_id, name="B", is_active=False)  # archived
     db_session.add_all([staff_a, staff_b])
     await db_session.flush()
 

@@ -40,13 +40,15 @@ async def test_statistics_empty_business_returns_zero_values(
 async def test_statistics_aggregates_seeded_bookings(
     client, db_session, business, client_user, admin_user, settings
 ) -> None:
+    branch_id = business._default_branch_id
     svc = Service(
         business_id=business.id,
+        branch_id=branch_id,
         title="Haircut",
         duration_minutes=60,
         price=Decimal("100.00"),
     )
-    staff = StaffMember(business_id=business.id, name="Alice")
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Alice")
     db_session.add_all([svc, staff])
     await db_session.flush()
 
@@ -54,6 +56,7 @@ async def test_statistics_aggregates_seeded_bookings(
     bookings = [
         Booking(
             business_id=business.id,
+            branch_id=branch_id,
             client_id=client_user.id,
             staff_id=staff.id,
             service_id=svc.id,
@@ -64,6 +67,7 @@ async def test_statistics_aggregates_seeded_bookings(
         ),
         Booking(
             business_id=business.id,
+            branch_id=branch_id,
             client_id=client_user.id,
             staff_id=staff.id,
             service_id=svc.id,
@@ -74,6 +78,7 @@ async def test_statistics_aggregates_seeded_bookings(
         ),
         Booking(
             business_id=business.id,
+            branch_id=branch_id,
             client_id=client_user.id,
             staff_id=staff.id,
             service_id=svc.id,
@@ -120,14 +125,16 @@ async def test_statistics_aggregates_seeded_bookings(
 async def test_statistics_filter_by_staff_id(
     client, db_session, business, client_user, admin_user, settings
 ) -> None:
+    branch_id = business._default_branch_id
     svc = Service(
         business_id=business.id,
+        branch_id=branch_id,
         title="Trim",
         duration_minutes=30,
         price=Decimal("50.00"),
     )
-    staff_a = StaffMember(business_id=business.id, name="Alice")
-    staff_b = StaffMember(business_id=business.id, name="Bob")
+    staff_a = StaffMember(business_id=business.id, branch_id=branch_id, name="Alice")
+    staff_b = StaffMember(business_id=business.id, branch_id=branch_id, name="Bob")
     db_session.add_all([svc, staff_a, staff_b])
     await db_session.flush()
 
@@ -136,6 +143,7 @@ async def test_statistics_filter_by_staff_id(
         [
             Booking(
                 business_id=business.id,
+                branch_id=branch_id,
                 client_id=client_user.id,
                 staff_id=staff_a.id,
                 service_id=svc.id,
@@ -146,6 +154,7 @@ async def test_statistics_filter_by_staff_id(
             ),
             Booking(
                 business_id=business.id,
+                branch_id=branch_id,
                 client_id=client_user.id,
                 staff_id=staff_b.id,
                 service_id=svc.id,
@@ -156,6 +165,7 @@ async def test_statistics_filter_by_staff_id(
             ),
             Booking(
                 business_id=business.id,
+                branch_id=branch_id,
                 client_id=client_user.id,
                 staff_id=staff_b.id,
                 service_id=svc.id,
@@ -192,13 +202,15 @@ async def test_statistics_filter_by_staff_id(
 async def test_export_bookings_csv_returns_header_and_rows(
     client, db_session, business, client_user, admin_user, settings
 ) -> None:
+    branch_id = business._default_branch_id
     svc = Service(
         business_id=business.id,
+        branch_id=branch_id,
         title="Spa",
         duration_minutes=60,
         price=Decimal("200.00"),
     )
-    staff = StaffMember(business_id=business.id, name="Carol")
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Carol")
     db_session.add_all([svc, staff])
     await db_session.flush()
 
@@ -206,6 +218,7 @@ async def test_export_bookings_csv_returns_header_and_rows(
     db_session.add(
         Booking(
             business_id=business.id,
+            branch_id=branch_id,
             client_id=client_user.id,
             staff_id=staff.id,
             service_id=svc.id,
@@ -244,13 +257,15 @@ async def test_export_bookings_csv_returns_header_and_rows(
 async def test_export_bookings_xlsx_returns_correct_mime(
     client, db_session, business, client_user, admin_user, settings
 ) -> None:
+    branch_id = business._default_branch_id
     svc = Service(
         business_id=business.id,
+        branch_id=branch_id,
         title="Mani",
         duration_minutes=30,
         price=Decimal("75.00"),
     )
-    staff = StaffMember(business_id=business.id, name="Dora")
+    staff = StaffMember(business_id=business.id, branch_id=branch_id, name="Dora")
     db_session.add_all([svc, staff])
     await db_session.flush()
 
@@ -258,6 +273,7 @@ async def test_export_bookings_xlsx_returns_correct_mime(
     db_session.add(
         Booking(
             business_id=business.id,
+            branch_id=branch_id,
             client_id=client_user.id,
             staff_id=staff.id,
             service_id=svc.id,

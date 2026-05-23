@@ -19,6 +19,7 @@ from app.db.models.user import User
 from app.db.repositories.admin_invites import AdminInvitesRepo
 from app.db.repositories.audit import AuditRepo
 from app.db.repositories.bookings import BookingsRepo
+from app.db.repositories.branches import BranchesRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
 from app.db.repositories.services import ServicesRepo
@@ -71,8 +72,19 @@ async def create_service(
 ) -> ServiceRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
+    branch_id = getattr(body, "branch_id", None)
+    if branch_id is None:
+        default_branch = await BranchesRepo(session).get_default(business.id)
+        if default_branch is None:
+            raise NotFound("No active branch found; create one first")
+        branch_id = default_branch.id
+    else:
+        branch = await BranchesRepo(session).get(branch_id)
+        if branch is None or branch.business_id != business.id:
+            raise NotFound("Branch not found")
     service = Service(
         business_id=business.id,
+        branch_id=branch_id,
         title=body.title,
         description=body.description,
         duration_minutes=body.duration_minutes,
@@ -139,7 +151,22 @@ async def admin_list_staff(
 async def create_staff(body: StaffCreate, _admin: AdminUser, session: SessionDep) -> StaffRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
-    staff = StaffMember(business_id=business.id, name=body.name, description=body.description)
+    branch_id = getattr(body, "branch_id", None)
+    if branch_id is None:
+        default_branch = await BranchesRepo(session).get_default(business.id)
+        if default_branch is None:
+            raise NotFound("No active branch found; create one first")
+        branch_id = default_branch.id
+    else:
+        branch = await BranchesRepo(session).get(branch_id)
+        if branch is None or branch.business_id != business.id:
+            raise NotFound("Branch not found")
+    staff = StaffMember(
+        business_id=business.id,
+        branch_id=branch_id,
+        name=body.name,
+        description=body.description,
+    )
     StaffRepo(session).add(staff)
     await session.commit()
     await session.refresh(staff)
