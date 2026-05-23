@@ -247,6 +247,7 @@ async def admin_list_bookings(
     admin: AdminUser,
     session: SessionDep,
     date_filter: Annotated[date | None, Query(alias="date")] = None,
+    week_start: Annotated[date | None, Query(alias="week_start")] = None,
     staff_id: int | None = None,
     service_id: int | None = None,
     status_filter: Annotated[BookingStatus | None, Query(alias="status")] = None,
@@ -256,7 +257,23 @@ async def admin_list_bookings(
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
     repo = BookingsRepo(session)
-    if date_filter is not None:
+    if week_start is not None:
+        week_start_utc, _ = local_date_bounds_utc(week_start, business.timezone)
+        end_of_week = week_start + timedelta(days=7)
+        _, week_end_utc = local_date_bounds_utc(
+            end_of_week - timedelta(days=1), business.timezone
+        )
+        bookings = await repo.list_admin_for_local_week(
+            business.id,
+            week_start_utc,
+            week_end_utc,
+            staff_id=staff_id,
+            service_id=service_id,
+            status=status_filter,
+            limit=limit,
+            offset=offset,
+        )
+    elif date_filter is not None:
         start_utc, end_utc = local_date_bounds_utc(date_filter, business.timezone)
         bookings = await repo.list_admin_for_local_date(
             business.id,
