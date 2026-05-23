@@ -47,6 +47,7 @@ export function AdminStaffDetailPage() {
         description: values.description || null,
       };
       if (values.branch_id != null) patch.branch_id = values.branch_id;
+      if (values.user_id !== undefined) patch.user_id = values.user_id;
       await update.mutateAsync({ id, patch });
       pushToast('success', 'Сохранено');
     } catch (e) {
@@ -103,7 +104,9 @@ export function AdminStaffDetailPage() {
               name: staff.name,
               description: staff.description ?? '',
               branch_id: staff.branch_id,
+              user_id: staff.user_id ?? null,
             }}
+            showUserLink
             submitting={update.isPending}
             onSubmit={saveProfile}
           />

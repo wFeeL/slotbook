@@ -5,29 +5,42 @@ import { Select } from '@/shared/ui/Select';
 import { Textarea } from '@/shared/ui/Textarea';
 import { Button } from '@/shared/ui/Button';
 import { useAdminBranches } from '@/entities/admin-branch/api';
+import { UserLinkField } from './UserLinkField';
 
 export interface StaffFormValues {
   branch_id: number | null;
   name: string;
   description: string;
+  user_id?: number | null;
 }
 
 interface StaffFormProps {
   initial?: Partial<StaffFormValues>;
+  /** Set when editing an existing staff — enables the user-link field. */
+  showUserLink?: boolean;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit(values: StaffFormValues): void;
   onCancel?: () => void;
 }
 
-export function StaffForm({ initial, submitting, submitLabel = 'Сохранить', onSubmit, onCancel }: StaffFormProps) {
+export function StaffForm({
+  initial,
+  showUserLink = false,
+  submitting,
+  submitLabel = 'Сохранить',
+  onSubmit,
+  onCancel,
+}: StaffFormProps) {
   const branchesQ = useAdminBranches();
   const activeBranches = (branchesQ.data ?? []).filter((b) => b.is_active);
+  const initialUserId = initial?.user_id ?? null;
 
   const [values, setValues] = useState<StaffFormValues>({
     branch_id: initial?.branch_id ?? null,
     name: initial?.name ?? '',
     description: initial?.description ?? '',
+    user_id: initialUserId,
   });
   const [errors, setErrors] = useState<{ name?: string | null; branch_id?: string | null }>({});
 
@@ -77,6 +90,13 @@ export function StaffForm({ initial, submitting, submitLabel = 'Сохранит
         value={values.description}
         onChange={(e) => setValues({ ...values, description: e.target.value })}
       />
+      {showUserLink && (
+        <UserLinkField
+          value={values.user_id ?? null}
+          onChange={(v) => setValues({ ...values, user_id: v })}
+          currentUserId={initialUserId}
+        />
+      )}
       <div className="flex gap-2 pt-2">
         <Button type="submit" disabled={submitting}>
           {submitting ? '...' : submitLabel}
