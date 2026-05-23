@@ -93,18 +93,16 @@ def render(
             f"<b>Время:</b> {when}"
         ), None
 
-    # REMINDER_24H, REMINDER_2H — reserved for sub-project 5 worker; render a basic stub
     if notification.notification_type in (
         NotificationType.REMINDER_24H,
         NotificationType.REMINDER_2H,
     ):
-        prefix = (
-            "⏰ Напоминание"
-            if notification.notification_type == NotificationType.REMINDER_2H
-            else "📅 Напоминание"
-        )
+        if notification.notification_type == NotificationType.REMINDER_2H:
+            header = "⏰ <b>Напоминание</b> — через 2 часа у вас запись"
+        else:
+            header = "📅 <b>Напоминание</b> — через 24 часа у вас запись"
         text = (
-            f"{prefix}\n\n"
+            f"{header}\n\n"
             f"<b>Услуга:</b> {service_title}\n"
             f"<b>Специалист:</b> {staff_name}\n"
             f"<b>Время:</b> {when}"
