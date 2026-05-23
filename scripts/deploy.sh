@@ -8,8 +8,13 @@ if [ ! -f .env.production ]; then
   exit 1
 fi
 
-echo "=> Pull latest..."
-git pull --ff-only
+# Pull latest if branch tracks a remote; otherwise skip.
+if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+  echo "=> Pull latest..."
+  git pull --ff-only
+else
+  echo "=> Branch has no upstream — skipping git pull. Make sure your local state is current."
+fi
 
 echo "=> Build images..."
 docker compose -f docker-compose.prod.yml --env-file .env.production build

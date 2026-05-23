@@ -50,10 +50,15 @@ export function useAuth(): { status: AuthStatus; firstName: string | null } {
         await setSession(result.access_token, result.user);
         if (!cancelled) setStatus('authenticated');
 
-        // Register the re-auth handler for 401 retries
+        // Register the re-auth handler for 401 retries.
+        // Read fresh initData each invocation — Telegram's initData carries a
+        // signed timestamp and the captured value would eventually expire.
         setReAuthHandler(async () => {
+          const tgNow = getWebApp();
+          const freshInitData = tgNow?.initData;
+          if (!freshInitData) return null;
           try {
-            const r = await exchangeInitData(initData);
+            const r = await exchangeInitData(freshInitData);
             await setSession(r.access_token, r.user);
             return r.access_token;
           } catch {

@@ -57,7 +57,7 @@ services:
     build:
       context: ./miniapp
       args:
-        VITE_API_BASE_URL: /api
+        VITE_API_BASE_URL: ""
     depends_on:
       api:
         condition: service_started
