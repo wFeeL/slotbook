@@ -18,6 +18,9 @@ import {
   StaffReadSchema,
   type StaffReadWithServices,
   StaffReadWithServicesSchema,
+  StatisticsResponseSchema,
+  type StatisticsResponse,
+  type StatisticsPeriodT,
   type TelegramAuthResponse,
   TelegramAuthResponseSchema,
   WorkingHoursEntrySchema,
@@ -86,6 +89,29 @@ export const api = {
   admin: {
     dashboard(): Promise<DashboardResponse> {
       return request('/api/v1/admin/dashboard', { method: 'GET' }, DashboardResponseSchema);
+    },
+    statistics(period: StatisticsPeriodT = '30d'): Promise<StatisticsResponse> {
+      return request(
+        `/api/v1/admin/statistics?period=${period}`,
+        { method: 'GET' },
+        StatisticsResponseSchema,
+      );
+    },
+    exportCsvUrl(params: { from?: string; to?: string; staff_id?: number } = {}): string {
+      const q = new URLSearchParams();
+      if (params.from) q.set('from', params.from);
+      if (params.to) q.set('to', params.to);
+      if (params.staff_id) q.set('staff_id', String(params.staff_id));
+      const qs = q.toString();
+      return `/api/v1/admin/exports/bookings.csv${qs ? `?${qs}` : ''}`;
+    },
+    exportXlsxUrl(params: { from?: string; to?: string; staff_id?: number } = {}): string {
+      const q = new URLSearchParams();
+      if (params.from) q.set('from', params.from);
+      if (params.to) q.set('to', params.to);
+      if (params.staff_id) q.set('staff_id', String(params.staff_id));
+      const qs = q.toString();
+      return `/api/v1/admin/exports/bookings.xlsx${qs ? `?${qs}` : ''}`;
     },
     business: {
       get(): Promise<BusinessRead> {

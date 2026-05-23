@@ -28,6 +28,7 @@ const AdminStaffFormPage = lazy(() => import('./pages/admin/AdminStaffFormPage')
 const AdminStaffDetailPage = lazy(() => import('./pages/admin/AdminStaffDetailPage').then((m) => ({ default: m.AdminStaffDetailPage })));
 const AdminCalendarPage = lazy(() => import('./pages/admin/AdminCalendarPage').then((m) => ({ default: m.AdminCalendarPage })));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
+const AdminStatisticsPage = lazy(() => import('./pages/admin/AdminStatisticsPage').then((m) => ({ default: m.AdminStatisticsPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,7 @@ export function App() {
                 <Route path="staff/:id" element={<AdminStaffDetailPage />} />
                 <Route path="calendar" element={<AdminCalendarPage />} />
                 <Route path="settings" element={<AdminSettingsPage />} />
+                <Route path="statistics" element={<AdminStatisticsPage />} />
               </Route>
 
               <Route path="*" element={<NotFoundPage />} />

@@ -151,3 +151,38 @@ export const BusinessReadSchema = z.object({
   slot_step_minutes: z.number(),
 });
 export type BusinessRead = z.infer<typeof BusinessReadSchema>;
+
+export const StatisticsPeriodSchema = z.enum(['7d', '30d', '90d', '365d']);
+export type StatisticsPeriodT = z.infer<typeof StatisticsPeriodSchema>;
+
+export const StatisticsResponseSchema = z.object({
+  period: StatisticsPeriodSchema,
+  revenue: z.string(),
+  total_bookings: z.number(),
+  completed_count: z.number(),
+  no_show_count: z.number(),
+  cancellation_count: z.number(),
+  cancellation_rate: z.number(),
+  top_services: z.array(
+    z.object({
+      service_id: z.number(),
+      service_title: z.string(),
+      completed_count: z.number(),
+      revenue: z.string(),
+    }),
+  ),
+  top_staff: z.array(
+    z.object({
+      staff_id: z.number(),
+      staff_name: z.string(),
+      completed_count: z.number(),
+    }),
+  ),
+  daily_volume: z.array(
+    z.object({
+      date: z.string(),
+      bookings_count: z.number(),
+    }),
+  ),
+});
+export type StatisticsResponse = z.infer<typeof StatisticsResponseSchema>;

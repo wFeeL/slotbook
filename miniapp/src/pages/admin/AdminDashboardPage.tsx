@@ -67,6 +67,18 @@ export function AdminDashboardPage() {
         </div>
       </section>
 
+      <Link to="/admin/statistics">
+        <Card interactive surface="shell">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-ink font-semibold">Статистика</div>
+              <div className="text-sienna text-xs">Выручка, топ услуг, экспорт CSV/XLSX</div>
+            </div>
+            <span className="text-sienna text-xl">›</span>
+          </div>
+        </Card>
+      </Link>
+
       <Link to="/admin/settings">
         <Card interactive surface="shell">
           <div className="flex items-center justify-between gap-3">
