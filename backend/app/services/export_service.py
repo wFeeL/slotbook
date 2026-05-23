@@ -83,7 +83,8 @@ async def to_csv(
     writer.writerow(COLUMNS)
     for row in await _rows(session, business_id, date_from, date_to, staff_id):
         writer.writerow([str(v) if v is not None else "" for v in row])
-    return buf.getvalue()
+    # Prepend UTF-8 BOM so Excel / Numbers on macOS correctly detect Cyrillic.
+    return "﻿" + buf.getvalue()
 
 
 async def to_xlsx(

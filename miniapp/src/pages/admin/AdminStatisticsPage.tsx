@@ -8,6 +8,7 @@ import { Select } from '@/shared/ui/Select';
 import { useStatistics } from '@/entities/admin-statistics/api';
 import { getAuthToken } from '@/shared/api/client';
 import { api } from '@/shared/api/endpoints';
+import { getWebApp } from '@/shared/telegram/webapp';
 import { pushToast } from '@/shared/store/toast-store';
 import type { StatisticsPeriodT } from '@/shared/api/types';
 import { cn } from '@/shared/lib/cn';
@@ -19,21 +20,47 @@ const PERIODS: { value: StatisticsPeriodT; label: string }[] = [
   { value: '365d', label: 'Год' },
 ];
 
-async function downloadAuthed(url: string, filename: string) {
+async function downloadAuthed(url: string, filename: string): Promise<void> {
   const token = getAuthToken();
   const res = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
-  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`Не удалось скачать (HTTP ${res.status})`);
+  }
   const blob = await res.blob();
   const objectUrl = URL.createObjectURL(blob);
+
+  // iOS Telegram WebView doesn't honor <a download>. Open the blob URL in a new
+  // tab/window — iOS QuickLook renders CSV/XLSX previews where the user can save.
+  // Desktop browsers and Android Telegram still get a normal download.
+  const isAppleTelegram =
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) && !!getWebApp();
+
+  if (isAppleTelegram) {
+    // Open in same WebView — Telegram iOS treats this as a document and shows
+    // the share sheet so the user can "Save to Files".
+    const opened = window.open(objectUrl, '_blank');
+    if (!opened) {
+      // Popup blocked — fall back to anchor click.
+      anchorDownload(objectUrl, filename);
+    }
+    // Release the blob a bit later — iOS needs time to consume it.
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  } else {
+    anchorDownload(objectUrl, filename);
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+function anchorDownload(objectUrl: string, filename: string) {
   const a = document.createElement('a');
   a.href = objectUrl;
   a.download = filename;
+  a.rel = 'noopener';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(objectUrl);
 }
 
 function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
