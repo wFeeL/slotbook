@@ -25,6 +25,8 @@ from app.schemas.admin import (
     AdminBookingCreate,
     AdminBookingPatch,
     AdminBookingRead,
+    BusinessRead,
+    BusinessUpdate,
     DashboardCounts,
     DashboardResponse,
 )
@@ -461,3 +463,23 @@ async def admin_dashboard(
         no_show_window_start=no_show_window_start,
     )
     return DashboardResponse(counts=DashboardCounts(**counts))
+
+
+@router.get("/business", response_model=BusinessRead)
+async def admin_get_business(_admin: AdminUser, session: SessionDep) -> BusinessRead:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    return BusinessRead.model_validate(business)
+
+
+@router.patch("/business", response_model=BusinessRead)
+async def admin_patch_business(
+    body: BusinessUpdate, _admin: AdminUser, session: SessionDep
+) -> BusinessRead:
+    repo = BusinessesRepo(session)
+    business = await repo.get_singleton()
+    assert business is not None
+    updates = body.model_dump(exclude_unset=True)
+    await repo.update(business, **updates)
+    await session.commit()
+    return BusinessRead.model_validate(business)
