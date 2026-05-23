@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +48,10 @@ class NotificationsRepo:
                 Notification.notification_status == NotificationStatus.PENDING,
                 Notification.scheduled_at.is_not(None),
                 Notification.scheduled_at <= now_utc,
+                sa.or_(
+                    Notification.next_retry_at.is_(None),
+                    Notification.next_retry_at <= now_utc,
+                ),
             )
             .order_by(Notification.scheduled_at)
             .limit(limit)
