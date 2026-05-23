@@ -45,8 +45,10 @@ from app.schemas.staff import (
     StaffServicesUpdate,
     StaffUpdate,
 )
+from app.schemas.statistics import StatisticsPeriod, StatisticsResponse
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
+from app.services.statistics_service import StatisticsService
 
 log = structlog.get_logger()
 
@@ -483,3 +485,15 @@ async def admin_patch_business(
     await repo.update(business, **updates)
     await session.commit()
     return BusinessRead.model_validate(business)
+
+
+@router.get("/statistics", response_model=StatisticsResponse)
+async def admin_statistics(
+    _admin: AdminUser,
+    session: SessionDep,
+    period: StatisticsPeriod = StatisticsPeriod.LAST_30D,
+    staff_id: int | None = None,
+) -> StatisticsResponse:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    return await StatisticsService(session).collect(business.id, period, staff_id=staff_id)
