@@ -28,9 +28,10 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-card p-5 shadow-[var(--shadow-warm)]',
+        'rounded-card p-5 shadow-warm transition-[transform,box-shadow] duration-200 ease-out',
         surface === 'shell' ? 'bg-shell' : 'bg-sand',
-        interactive && 'cursor-pointer transition active:scale-[0.97] hover:shadow-[var(--shadow-warm-lg)]',
+        interactive &&
+          'cursor-pointer hover:shadow-warm-lg hover:-translate-y-0.5 active:scale-[0.985] active:translate-y-0',
         className,
       )}
       onClick={onClick}
