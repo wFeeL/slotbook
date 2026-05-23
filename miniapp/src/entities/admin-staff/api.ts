@@ -34,7 +34,11 @@ export function useCreateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.admin.staff.create,
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminStaffKeys.list() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminStaffKeys.list() });
+      // Public client-facing staff list shares the same backend resource.
+      qc.invalidateQueries({ queryKey: ['staff'] });
+    },
   });
 }
 
@@ -43,7 +47,10 @@ export function useUpdateStaff() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: number; patch: Parameters<typeof api.admin.staff.update>[1] }) =>
       api.admin.staff.update(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminStaffKeys.list() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminStaffKeys.list() });
+      qc.invalidateQueries({ queryKey: ['staff'] });
+    },
   });
 }
 
@@ -51,7 +58,10 @@ export function useArchiveStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.admin.staff.archive,
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminStaffKeys.list() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminStaffKeys.list() });
+      qc.invalidateQueries({ queryKey: ['staff'] });
+    },
   });
 }
 
@@ -60,8 +70,10 @@ export function useReplaceStaffServices() {
   return useMutation({
     mutationFn: ({ id, serviceIds }: { id: number; serviceIds: number[] }) =>
       api.admin.staff.replaceServices(id, serviceIds),
-    onSuccess: (_data, vars) =>
-      qc.invalidateQueries({ queryKey: adminStaffKeys.detail(vars.id) }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: adminStaffKeys.detail(vars.id) });
+      qc.invalidateQueries({ queryKey: ['staff'] });
+    },
   });
 }
 

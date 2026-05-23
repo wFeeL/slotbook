@@ -32,6 +32,8 @@ export function useCreateAdminBooking() {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
       qc.invalidateQueries({ queryKey: ['admin', 'booking'] });
       qc.invalidateQueries({ queryKey: adminDashboardKeys.root() });
+      // Admin booking creation consumes a slot — drop public slot cache.
+      qc.invalidateQueries({ queryKey: ['slots'] });
     },
   });
 }
@@ -44,6 +46,8 @@ export function useAdminCancelBooking() {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
       qc.invalidateQueries({ queryKey: ['admin', 'booking'] });
       qc.invalidateQueries({ queryKey: adminDashboardKeys.root() });
+      // Admin cancellation frees a slot — drop public slot cache.
+      qc.invalidateQueries({ queryKey: ['slots'] });
     },
   });
 }
