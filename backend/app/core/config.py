@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     BUSINESS_MIN_CANCELLATION_HOURS: int = 2
     BUSINESS_SLOT_STEP_MINUTES: int = 15
 
+    # Worker
+    WORKER_TICK_SECONDS: int = 60
+
     @field_validator("BOT_ADMIN_TELEGRAM_IDS", mode="before")
     @classmethod
     def parse_admin_ids(cls, v: Any) -> list[int]:
