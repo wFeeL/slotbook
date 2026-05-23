@@ -503,3 +503,18 @@ async def test_reschedule_own_booking(
         headers=auth_headers(staff_user, settings),
     )
     assert res.status_code == 200, res.text
+
+
+@pytest.mark.asyncio
+async def test_my_statistics_returns_response(
+    client, staff_user, linked_staff, settings
+) -> None:
+    res = await client.get(
+        "/api/v1/staff/me/statistics?period=30d",
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert "total_bookings" in body
+    assert "completed_count" in body
+    assert "top_services" in body

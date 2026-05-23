@@ -514,5 +514,12 @@ export const api = {
         StaffBookingReadSchema,
       );
     },
+    statistics(period: StatisticsPeriodT = '30d'): Promise<StatisticsResponse> {
+      return request(
+        `/api/v1/staff/me/statistics?period=${period}`,
+        { method: 'GET' },
+        StatisticsResponseSchema,
+      );
+    },
   },
 };

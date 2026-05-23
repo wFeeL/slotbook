@@ -31,6 +31,7 @@ from app.schemas.schedules import (
     WorkingHoursEntry,
     WorkingHoursReplace,
 )
+from app.schemas.statistics import StatisticsPeriod, StatisticsResponse
 from app.schemas.staff_me import (
     StaffBookingPatch,
     StaffBookingRead,
@@ -448,3 +449,15 @@ async def reschedule_my_booking(
     svc = await session.get(Service, booking.service_id)
     cli = await session.get(User, booking.client_id)
     return _booking_to_read(booking, svc, cli)
+
+
+@router.get("/statistics", response_model=StatisticsResponse)
+async def my_statistics(
+    staff: LinkedStaff,
+    session: SessionDep,
+    period: StatisticsPeriod = StatisticsPeriod.LAST_30D,
+) -> StatisticsResponse:
+    from app.services.statistics_service import StatisticsService
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    return await StatisticsService(session).collect(business.id, period, staff_id=staff.id)

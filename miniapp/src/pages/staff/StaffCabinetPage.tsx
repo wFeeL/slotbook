@@ -9,11 +9,13 @@ import {
   useCancelMyBooking,
   useMyBookings,
   useMySchedule,
+  useMyStatistics,
   useMyWorkingHours,
   useReplaceMyWorkingHours,
   useStaffMe,
   useUpdateMyBooking,
 } from '@/entities/staff-me/api';
+import type { StatisticsPeriodT } from '@/shared/api/types';
 import { pushToast } from '@/shared/store/toast-store';
 import { showConfirm } from '@/shared/telegram/hooks';
 import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
@@ -23,7 +25,14 @@ import { cn } from '@/shared/lib/cn';
 import type { WorkingHoursEntry } from '@/shared/api/types';
 import type { StaffBookingRead } from '@/entities/staff-me/model';
 
-type Tab = 'today' | 'week' | 'schedule';
+type Tab = 'today' | 'week' | 'schedule' | 'stats';
+
+const STAT_PERIODS: { value: StatisticsPeriodT; label: string }[] = [
+  { value: '7d', label: '7 дней' },
+  { value: '30d', label: '30 дней' },
+  { value: '90d', label: '90 дней' },
+  { value: '365d', label: 'Год' },
+];
 
 function todayLocalISO(): string {
   const now = new Date();
@@ -78,6 +87,8 @@ export function StaffCabinetPage() {
   const workingHours = useMyWorkingHours();
   const replaceWH = useReplaceMyWorkingHours();
   const [editHours, setEditHours] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState<StatisticsPeriodT>('30d');
+  const stats = useMyStatistics(statsPeriod);
 
   function shiftWeek(deltaDays: number) {
     const d = new Date(weekStart);
@@ -138,7 +149,7 @@ export function StaffCabinetPage() {
       </header>
 
       <nav className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
-        {(['today', 'week', 'schedule'] as Tab[]).map((t) => (
+        {(['today', 'week', 'schedule', 'stats'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -150,7 +161,13 @@ export function StaffCabinetPage() {
                 : 'bg-shell border border-sand text-sienna-deep',
             )}
           >
-            {t === 'today' ? 'Сегодня' : t === 'week' ? 'Неделя' : 'Расписание'}
+            {t === 'today'
+              ? 'Сегодня'
+              : t === 'week'
+                ? 'Неделя'
+                : t === 'schedule'
+                  ? 'Расписание'
+                  : 'Статистика'}
           </button>
         ))}
       </nav>
@@ -261,6 +278,64 @@ export function StaffCabinetPage() {
               </div>
             </Card>
           ))}
+        </section>
+      )}
+
+      {tab === 'stats' && (
+        <section className="flex flex-col gap-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
+            {STAT_PERIODS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => setStatsPeriod(p.value)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap',
+                  statsPeriod === p.value
+                    ? 'bg-rose text-shell'
+                    : 'bg-shell border border-sand text-sienna-deep',
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {stats.isLoading && <Skeleton height={120} />}
+          {stats.data && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Card surface="shell">
+                  <div className="text-sienna-deep text-xs uppercase">Выручка</div>
+                  <div className="text-2xl text-ink font-display">{stats.data.revenue} ₽</div>
+                </Card>
+                <Card surface="shell">
+                  <div className="text-sienna-deep text-xs uppercase">Всего записей</div>
+                  <div className="text-2xl text-ink font-display">{stats.data.total_bookings}</div>
+                </Card>
+                <Card surface="shell">
+                  <div className="text-sienna-deep text-xs uppercase">Завершено</div>
+                  <div className="text-2xl text-ink font-display">{stats.data.completed_count}</div>
+                </Card>
+                <Card surface="shell">
+                  <div className="text-sienna-deep text-xs uppercase">Не пришли</div>
+                  <div className="text-2xl text-ink font-display">{stats.data.no_show_count}</div>
+                </Card>
+              </div>
+              {stats.data.top_services.length > 0 && (
+                <Card surface="shell">
+                  <div className="text-sienna-deep text-xs uppercase mb-2">Топ услуг</div>
+                  <div className="flex flex-col gap-1">
+                    {stats.data.top_services.map((s) => (
+                      <div key={s.service_id} className="flex justify-between text-sm">
+                        <span className="text-ink">{s.service_title}</span>
+                        <span className="text-sienna-deep">{s.completed_count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
         </section>
       )}
 

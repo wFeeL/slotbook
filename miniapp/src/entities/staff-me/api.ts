@@ -113,3 +113,10 @@ export function useRescheduleMyBooking() {
     },
   });
 }
+
+export function useMyStatistics(period: '7d' | '30d' | '90d' | '365d' = '30d') {
+  return useQuery({
+    queryKey: [...KEY, 'statistics', period],
+    queryFn: () => api.staffMe.statistics(period),
+  });
+}
