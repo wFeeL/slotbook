@@ -1,6 +1,6 @@
 # SlotBook Mini App
 
-Vite + React 19 + TypeScript SPA delivered as a Telegram Mini App. See `../docs/superpowers/specs/2026-05-23-slotbook-miniapp-design.md`.
+Vite + React 19 + TypeScript SPA delivered as a Telegram Mini App.
 
 ## Local development
 
