@@ -185,14 +185,18 @@ export function StaffCabinetPage() {
           {todays.data?.map((b) => (
             <Card key={b.id} surface="shell">
               <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/me/bookings/${b.id}`)}
+                  className="flex items-center justify-between gap-2 text-left"
+                >
                   <div className="text-ink font-semibold">
                     {fmtTime(b.starts_at)} — {fmtTime(b.ends_at)}
                   </div>
                   <Badge tone={bookingStatusTone(b.status)}>
                     {bookingStatusLabel(b.status)}
                   </Badge>
-                </div>
+                </button>
                 <div className="text-ink">{b.service_title}</div>
                 <div className="text-sienna-deep text-sm">
                   {b.client_first_name ?? 'Клиент'}
@@ -263,9 +267,11 @@ export function StaffCabinetPage() {
                   <div className="text-sienna-deep text-sm">Свободный день</div>
                 )}
                 {day.bookings.map((b) => (
-                  <div
+                  <button
                     key={b.id}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    type="button"
+                    onClick={() => navigate(`/me/bookings/${b.id}`)}
+                    className="flex items-center justify-between gap-2 text-sm text-left active:scale-[0.99]"
                   >
                     <span className="text-ink">
                       {fmtTime(b.starts_at)} — {b.service_title}
@@ -273,7 +279,7 @@ export function StaffCabinetPage() {
                     <span className="text-sienna-deep">
                       {b.client_first_name ?? 'Клиент'}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Card>
