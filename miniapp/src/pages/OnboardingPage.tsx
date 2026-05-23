@@ -9,7 +9,9 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const { firstName } = useAuth();
   const role = useAuthStore((s) => s.user?.role);
+  const staffMe = useAuthStore((s) => s.staffMe);
   const isAdmin = role === 'admin' || role === 'superadmin';
+  const isStaff = staffMe?.linked === true;
   const businessName = import.meta.env.VITE_BUSINESS_NAME ?? 'SlotBook';
 
   return (
@@ -47,6 +49,16 @@ export function OnboardingPage() {
               <span className="text-sm font-normal opacity-80">история и предстоящее</span>
             </span>
           </Button>
+          {isStaff && (
+            <Button size="lg" variant="ghost" onClick={() => navigate('/me')}>
+              <span className="flex flex-col items-start gap-0.5 text-left">
+                <span>Кабинет мастера</span>
+                <span className="text-sm font-normal opacity-80">
+                  сегодняшние записи и расписание
+                </span>
+              </span>
+            </Button>
+          )}
           {isAdmin && (
             <Button size="lg" variant="ghost" onClick={() => navigate('/admin')}>
               <span className="flex flex-col items-start gap-0.5 text-left">
