@@ -23,6 +23,8 @@ const AdminBookingNewPage = lazy(() => import('./pages/admin/AdminBookingNewPage
 const AdminBookingDetailPage = lazy(() => import('./pages/admin/AdminBookingDetailPage').then((m) => ({ default: m.AdminBookingDetailPage })));
 const AdminServicesPage = lazy(() => import('./pages/admin/AdminServicesPage').then((m) => ({ default: m.AdminServicesPage })));
 const AdminServiceFormPage = lazy(() => import('./pages/admin/AdminServiceFormPage').then((m) => ({ default: m.AdminServiceFormPage })));
+const AdminBranchesPage = lazy(() => import('./pages/admin/AdminBranchesPage').then((m) => ({ default: m.AdminBranchesPage })));
+const AdminBranchFormPage = lazy(() => import('./pages/admin/AdminBranchFormPage').then((m) => ({ default: m.AdminBranchFormPage })));
 const AdminStaffPage = lazy(() => import('./pages/admin/AdminStaffPage').then((m) => ({ default: m.AdminStaffPage })));
 const AdminStaffFormPage = lazy(() => import('./pages/admin/AdminStaffFormPage').then((m) => ({ default: m.AdminStaffFormPage })));
 const AdminStaffDetailPage = lazy(() => import('./pages/admin/AdminStaffDetailPage').then((m) => ({ default: m.AdminStaffDetailPage })));
@@ -79,6 +81,9 @@ export function App() {
                 <Route path="services" element={<AdminServicesPage />} />
                 <Route path="services/new" element={<AdminServiceFormPage />} />
                 <Route path="services/:id/edit" element={<AdminServiceFormPage />} />
+                <Route path="branches" element={<AdminBranchesPage />} />
+                <Route path="branches/new" element={<AdminBranchFormPage />} />
+                <Route path="branches/:id/edit" element={<AdminBranchFormPage />} />
                 <Route path="staff" element={<AdminStaffPage />} />
                 <Route path="staff/new" element={<AdminStaffFormPage />} />
                 <Route path="staff/:id" element={<AdminStaffDetailPage />} />

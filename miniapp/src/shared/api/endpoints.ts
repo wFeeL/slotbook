@@ -190,6 +190,7 @@ export const api = {
     },
     services: {
       create(body: {
+        branch_id?: number | null;
         title: string;
         description?: string | null;
         duration_minutes: number;
@@ -205,6 +206,7 @@ export const api = {
       update(
         id: number,
         body: Partial<{
+          branch_id: number;
           title: string;
           description: string | null;
           duration_minutes: number;
@@ -234,7 +236,11 @@ export const api = {
           z.array(StaffReadWithServicesSchema),
         );
       },
-      create(body: { name: string; description?: string | null }): Promise<StaffRead> {
+      create(body: {
+        branch_id?: number | null;
+        name: string;
+        description?: string | null;
+      }): Promise<StaffRead> {
         return request(
           '/api/v1/admin/staff',
           { method: 'POST', body: JSON.stringify(body) },
@@ -243,7 +249,12 @@ export const api = {
       },
       update(
         id: number,
-        body: Partial<{ name: string; description: string | null; is_active: boolean }>,
+        body: Partial<{
+          branch_id: number;
+          name: string;
+          description: string | null;
+          is_active: boolean;
+        }>,
       ): Promise<StaffRead> {
         return request(
           `/api/v1/admin/staff/${id}`,

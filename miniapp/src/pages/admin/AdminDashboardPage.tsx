@@ -91,6 +91,18 @@ export function AdminDashboardPage() {
         </Card>
       </Link>
 
+      <Link to="/admin/branches">
+        <Card interactive surface="shell">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-ink font-semibold">Филиалы</div>
+              <div className="text-sienna text-xs">Адреса, часовые пояса, активные точки</div>
+            </div>
+            <span className="text-sienna text-xl">›</span>
+          </div>
+        </Card>
+      </Link>
+
       <Link to="/admin/settings">
         <Card interactive surface="shell">
           <div className="flex items-center justify-between gap-3">

@@ -13,6 +13,7 @@ export function AdminStaffFormPage() {
   async function handleSubmit(values: StaffFormValues) {
     try {
       const staff = await create.mutateAsync({
+        branch_id: values.branch_id,
         name: values.name,
         description: values.description || null,
       });

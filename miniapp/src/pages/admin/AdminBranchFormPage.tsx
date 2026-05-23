@@ -1,69 +1,67 @@
-// miniapp/src/pages/admin/AdminServiceFormPage.tsx
 import { useNavigate, useParams } from 'react-router';
 import { useEffect, useState } from 'react';
-import { ServiceForm, type ServiceFormValues } from '@/features/admin-services/ServiceForm';
-import { useAdminServices, useArchiveService, useCreateService, useUpdateServiceById } from '@/entities/admin-service/api';
+import { BranchForm, type BranchFormValues } from '@/features/admin-branches/BranchForm';
+import {
+  useAdminBranches,
+  useArchiveBranch,
+  useCreateBranch,
+  useUpdateBranch,
+} from '@/entities/admin-branch/api';
 import { pushToast } from '@/shared/store/toast-store';
 import { useHaptic } from '@/shared/telegram/hooks';
 import { Button } from '@/shared/ui/Button';
 
-export function AdminServiceFormPage() {
+export function AdminBranchFormPage() {
   const navigate = useNavigate();
   const params = useParams();
   const haptic = useHaptic();
   const isEdit = Boolean(params.id);
   const id = params.id ? Number(params.id) : null;
 
-  const services = useAdminServices();
-  const existing = isEdit && id != null ? (services.data ?? []).find((s) => s.id === id) : null;
-  const [initial, setInitial] = useState<Partial<ServiceFormValues> | null>(isEdit ? null : {});
+  const branches = useAdminBranches();
+  const existing = isEdit && id != null ? (branches.data ?? []).find((b) => b.id === id) : null;
+  const [initial, setInitial] = useState<Partial<BranchFormValues> | null>(isEdit ? null : {});
 
   useEffect(() => {
     if (isEdit && existing) {
       setInitial({
-        branch_id: existing.branch_id,
-        title: existing.title,
-        description: existing.description ?? '',
-        duration_minutes: existing.duration_minutes,
-        price: existing.price ?? '',
+        name: existing.name,
+        address: existing.address ?? '',
+        timezone: existing.timezone,
         sort_order: existing.sort_order,
         is_active: existing.is_active,
       });
     }
   }, [isEdit, existing]);
 
-  const create = useCreateService();
-  const update = useUpdateServiceById();
-  const archive = useArchiveService();
+  const create = useCreateBranch();
+  const update = useUpdateBranch();
+  const archive = useArchiveBranch();
 
-  async function handleSubmit(values: ServiceFormValues) {
+  async function handleSubmit(values: BranchFormValues) {
     try {
       if (isEdit && id != null) {
         await update.mutateAsync({
           id,
           patch: {
-            ...(values.branch_id != null ? { branch_id: values.branch_id } : {}),
-            title: values.title,
-            description: values.description || null,
-            duration_minutes: values.duration_minutes,
-            price: values.price || null,
+            name: values.name,
+            address: values.address || null,
+            timezone: values.timezone,
             sort_order: values.sort_order,
             is_active: values.is_active,
           },
         });
       } else {
         await create.mutateAsync({
-          branch_id: values.branch_id,
-          title: values.title,
-          description: values.description || null,
-          duration_minutes: values.duration_minutes,
-          price: values.price || null,
+          name: values.name,
+          address: values.address || null,
+          timezone: values.timezone,
           sort_order: values.sort_order,
         });
       }
       pushToast('success', 'Сохранено');
       haptic.success();
-      navigate('/admin/services');
+      navigate('/admin/branches');
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось сохранить');
       haptic.error();
@@ -74,8 +72,8 @@ export function AdminServiceFormPage() {
     if (id == null) return;
     try {
       await archive.mutateAsync(id);
-      pushToast('success', 'Услуга архивирована');
-      navigate('/admin/services');
+      pushToast('success', 'Филиал архивирован');
+      navigate('/admin/branches');
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось');
     }
@@ -88,13 +86,14 @@ export function AdminServiceFormPage() {
   return (
     <div className="pt-2 pb-6">
       <h2 className="text-xl text-ink font-display mb-4">
-        {isEdit ? 'Редактировать услугу' : 'Новая услуга'}
+        {isEdit ? 'Редактировать филиал' : 'Новый филиал'}
       </h2>
-      <ServiceForm
+      <BranchForm
         initial={initial ?? {}}
         submitting={create.isPending || update.isPending}
+        showActiveToggle={isEdit}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/admin/services')}
+        onCancel={() => navigate('/admin/branches')}
       />
       {isEdit && (
         <div className="mt-6 pt-4 border-t border-sand">
