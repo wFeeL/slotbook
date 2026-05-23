@@ -1,10 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from aiogram import Bot
 from fastapi import FastAPI
 
 from app.api.router import api_router
 from app.api.routes import health
+from app.bot.app_factory import create_bot
 from app.core.config import get_settings
 from app.core.errors import install_exception_handlers
 from app.core.logging import configure_logging
@@ -25,7 +27,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             slot_step_minutes=settings.BUSINESS_SLOT_STEP_MINUTES,
         )
         await session.commit()
-    yield
+    bot: Bot = create_bot(settings)
+    _app.state.bot = bot
+    try:
+        yield
+    finally:
+        await bot.session.close()
 
 
 def create_app() -> FastAPI:

@@ -116,6 +116,21 @@ class BookingsRepo:
         stmt = stmt.order_by(Booking.starts_at.asc()).limit(limit).offset(offset)
         return list((await self.session.execute(stmt)).scalars().all())
 
+    async def list_for_client_upcoming(
+        self, client_id: int, *, now_utc: datetime, limit: int = 5
+    ) -> list[Booking]:
+        stmt = (
+            select(Booking)
+            .where(
+                Booking.client_id == client_id,
+                Booking.starts_at >= now_utc,
+                Booking.status.in_([BookingStatus.PENDING, BookingStatus.CONFIRMED]),
+            )
+            .order_by(Booking.starts_at.asc())
+            .limit(limit)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def dashboard_counts(
         self,
         business_id: int,

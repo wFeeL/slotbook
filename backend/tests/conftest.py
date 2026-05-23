@@ -18,7 +18,6 @@ from app.db.enums import UserRole
 from app.db.models.business import Business
 from app.db.models.user import User
 from app.db.session import get_session
-from app.main import create_app
 
 # Force settings to load test DB URL.
 os.environ.setdefault("APP_ENV", "test")
@@ -132,14 +131,28 @@ def settings() -> Settings:
 
 @pytest_asyncio.fixture
 async def client(db_engine, settings) -> AsyncIterator[AsyncClient]:  # type: ignore[no-untyped-def]
+    from unittest.mock import AsyncMock
+
+    from aiogram import Bot
+    from fastapi import FastAPI
+
     sessionmaker = async_sessionmaker(db_engine, expire_on_commit=False, class_=AsyncSession)
 
     async def override_session() -> AsyncIterator[AsyncSession]:
         async with sessionmaker() as session:
             yield session
 
-    app = create_app()
+    app = FastAPI(title="SlotBook API (test)")
+    from app.api.router import api_router
+    from app.api.routes import health
+    from app.core.errors import install_exception_handlers
+
+    install_exception_handlers(app)
+    app.include_router(health.router, tags=["health"])
+    app.include_router(api_router)
     app.dependency_overrides[get_session] = override_session
+    app.state.bot = AsyncMock(spec=Bot)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

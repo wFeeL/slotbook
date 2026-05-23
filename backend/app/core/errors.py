@@ -113,6 +113,12 @@ class CannotCancelInCurrentStatus(DomainError):
     message = "Запись нельзя отменить в текущем статусе"
 
 
+class BotConfigurationError(DomainError):
+    code = "bot_configuration_error"
+    http_status = 500
+    message = "Telegram bot is misconfigured"
+
+
 def _error_payload(code: str, message: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
     payload: dict[str, Any] = {"detail": {"code": code, "message": message}}
     if extra:
