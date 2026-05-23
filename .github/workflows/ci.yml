@@ -1,0 +1,65 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: booking
+          POSTGRES_USER: booking
+          POSTGRES_PASSWORD: booking
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booking -d booking"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+asyncpg://booking:booking@localhost:5432/booking
+      TEST_DATABASE_URL: postgresql+asyncpg://booking:booking@localhost:5432/booking_test
+      BOT_TOKEN: ci-bot-token
+      JWT_SECRET: ci-jwt-secret-please-rotate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+          enable-cache: true
+      - run: uv sync --all-groups
+      - name: Create test database
+        run: |
+          PGPASSWORD=booking psql -h localhost -U booking -d booking \
+            -c "CREATE DATABASE booking_test OWNER booking;"
+      - run: uv run alembic upgrade head
+      - run: uv run ruff check app/ tests/
+      - run: uv run pytest -q
+
+  miniapp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+      - run: npm run build

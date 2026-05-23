@@ -1,133 +1,87 @@
-# SlotBook — MVP Backend Core (sub-project 1 of 6)
+# SlotBook
 
-> First slice of the SlotBook product: a self-contained FastAPI backend that powers booking via Telegram Mini App.
+> Online booking system over Telegram — sell as a template to barbershops, salons, tutors, photographers, etc.
+
+A complete six-part product:
+
+| # | What | Status |
+|---|---|---|
+| 1 | FastAPI backend with race-protected booking | ✅ |
+| 2 | aiogram Bot with admin notifications | ✅ |
+| 3 | Telegram Mini App (React) with Soft/Organic aesthetic | ✅ |
+| 4 | Admin panel inside the Mini App | ✅ |
+| 5 | Reminders worker (24h + 2h notifications) | ✅ |
+| 6 | Production deployment with Caddy + auto-HTTPS | ✅ |
+
+For **production deployment**: see [DEPLOY.md](./DEPLOY.md).
+
+---
 
 ## What this delivers
 
-- Telegram `initData` → JWT authentication
-- Slot calculation (working hours, exceptions, buffer, timezone-correct)
-- Booking creation with `SELECT FOR UPDATE` race protection
-- Client and admin REST endpoints under `/api/v1`
-- Postgres schema via Alembic, structured logging, domain error envelope
-- Docker Compose for local development; production deployment lives in sub-project 6
+- Telegram `initData` → JWT authentication (HMAC-SHA-256 validation).
+- Slot calculation that respects working hours, exceptions, buffer, and timezone.
+- Booking creation with `SELECT FOR UPDATE` + unique partial index race protection.
+- Client and admin REST endpoints under `/api/v1`.
+- Postgres schema via Alembic, structured logging, domain error envelope.
+- aiogram-driven bot for the start menu, admin notifications, and cancellation buttons.
+- React Mini App (Vite + Tailwind 4 + React Router 7) with the full booking flow + admin panel.
+- APScheduler worker for 24h / 2h reminders.
+- Docker Compose for local dev and `docker-compose.prod.yml` + Caddy for production.
 
-## Architecture (high level)
+## Architecture
 
 ```
-HTTP request
-  → FastAPI router (api/routes/*.py)
-    → service (services/*.py)              ← all business logic
-      → repository (db/repositories/*.py)  ← all SQL
-        → PostgreSQL
+Internet ──► Caddy (TLS) ──► api / bot / miniapp           (all in compose)
+                                │
+                                ▼
+                          PostgreSQL
+                                ▲
+                                │
+                              worker (separate process)
 ```
 
-Times are stored as `TIMESTAMP WITH TIME ZONE` (UTC). Conversion to the business' IANA timezone happens only at the edges (slot calculation and response formatting). The `core/time.py` helpers guarantee no naive datetimes leak into the codebase.
+Times are stored as `TIMESTAMP WITH TIME ZONE` (UTC) end-to-end. Conversion to the business' IANA timezone happens only at edges (slot calc and response rendering).
 
-## Prerequisites
+## Local development
+
+### Prerequisites
 
 - Docker + Docker Compose
 - [uv](https://github.com/astral-sh/uv) for Python deps
-- Python 3.12+ (only needed if you run outside Docker)
+- Node 20+ for the Mini App
+- Python 3.12+ (only needed for running outside Docker)
 
-## Quick start
+### Bring up everything
 
 ```bash
 git clone <repo> slot_book_bot
 cd slot_book_bot
 
-# Bring up Postgres + Redis (api will start too in the next step)
+cp backend/.env.example backend/.env
+# Edit backend/.env — at minimum: BOT_TOKEN, JWT_SECRET, BOT_ADMIN_TELEGRAM_IDS.
+
 docker compose up -d postgres redis
-
 cd backend
-cp .env.example .env
-# Edit .env: set BOT_TOKEN, JWT_SECRET, BOT_ADMIN_TELEGRAM_IDS.
-
 uv sync --all-groups
 uv run alembic upgrade head
-uv run python seed.py --demo   # populates a Demo Studio business + sample data
-uv run uvicorn app.main:app --reload
+uv run python seed.py --demo
+docker compose up -d api bot worker miniapp
 ```
 
-Open <http://localhost:8000/health> — `{"status":"ok"}`.
-Open <http://localhost:8000/docs> for the auto-generated OpenAPI UI.
+- API: <http://localhost:8000/health> · <http://localhost:8000/docs>
+- Mini App: <http://localhost:5174>
 
-## Bot setup
+The Mini App in dev supports a `?devToken=<jwt>` query param to bypass Telegram-only auth in a normal browser.
 
-The Telegram bot runs as its own Docker service (`bot`) using the same image as the API.
-
-### Local development (polling)
-
-1. Create a bot via [@BotFather](https://t.me/BotFather) and copy the token.
-2. Put it in `backend/.env`:
-   ```
-   BOT_TOKEN=123456:ABC...
-   BOT_MODE=polling
-   MINI_APP_URL=https://your-miniapp.example.com
-   ```
-3. Start everything:
-   ```bash
-   docker compose up -d
-   ```
-4. Send `/start` to your bot in Telegram. You should see the greeting + main menu.
-
-### Production (webhook)
-
-1. Deploy behind HTTPS (nginx/Caddy → port 8001).
-2. Set in `.env`:
-   ```
-   APP_ENV=prod
-   BOT_MODE=webhook
-   BOT_WEBHOOK_URL=https://your-domain/webhook/telegram
-   BOT_WEBHOOK_SECRET_TOKEN=<long-random-string>
-   MINI_APP_URL=https://your-miniapp/
-   ```
-3. `main_bot.py` will call `setWebhook` on startup. Telegram POSTs updates with the secret-token header; the handler verifies and routes them to the dispatcher.
-
-### Adding admins
-
-Put your Telegram numeric ID in `BOT_ADMIN_TELEGRAM_IDS` (comma-separated) in `.env`. The promotion happens the next time you authenticate via `POST /api/v1/auth/telegram` from the Mini App — sending `/start` to the bot does NOT promote you.
-
-### What the bot can do (sub-project 2 scope)
-
-- `/start` — main menu with Mini App buttons
-- `/help` — usage info
-- `/my_bookings` — list of your upcoming bookings
-- Receives admin notifications about new bookings with `[❌ Отменить]` and `[📋 Открыть в панели]` buttons
-
-Reminders (24h / 2h before booking) are coming in sub-project 5.
-
-## Mini App (frontend)
-
-The client interface is a Telegram Mini App served from `miniapp/`. See `miniapp/README.md` for full setup; quick start:
+### Frontend dev server (hot reload)
 
 ```bash
 cd miniapp
 npm install
 cp .env.example .env
-npm run dev   # http://localhost:5173
+npm run dev   # http://localhost:5173 with proxy to :8000
 ```
-
-The dev server proxies `/api/*` to `http://localhost:8000` so just `docker compose up -d postgres api` is enough.
-
-To open inside Telegram during development, you need an HTTPS tunnel — `cloudflared` or `ngrok` pointing at `:5173` — and then set the Mini App URL in @BotFather (or set the inline keyboard `web_app` URL in `BOT_TOKEN`'s bot configuration). The local browser-preview supports `?devToken=...` to bypass Telegram auth.
-
-## Environment variables
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `APP_ENV` | `local` | One of `local`, `test`, `prod` |
-| `APP_DEBUG` | `true` | Pretty-print logs and enable echo of SQL |
-| `DATABASE_URL` | `postgresql+asyncpg://booking:booking@localhost:5432/booking` | Async DSN |
-| `TEST_DATABASE_URL` | `postgresql+asyncpg://booking:booking@localhost:5432/booking_test` | Used only by the test suite |
-| `BOT_TOKEN` | — | Telegram bot token. Required for `initData` validation |
-| `BOT_ADMIN_TELEGRAM_IDS` | empty | Comma-separated list. On first auth, these Telegram IDs are promoted to `admin` |
-| `JWT_SECRET` | — | HS256 secret. Set to a random long string in production |
-| `JWT_EXPIRE_MINUTES` | `1440` | Token lifetime |
-| `BUSINESS_NAME` | `Demo Studio` | Used to bootstrap the single business row |
-| `BUSINESS_TIMEZONE` | `Europe/Moscow` | IANA timezone |
-| `BUSINESS_BOOKING_BUFFER_MINUTES` | `0` | Buffer applied on both sides of each booking |
-| `BUSINESS_MIN_CANCELLATION_HOURS` | `2` | Earliest a client may cancel themselves |
-| `BUSINESS_SLOT_STEP_MINUTES` | `15` | Granularity at which slots are offered |
 
 ## Tests
 
@@ -138,22 +92,28 @@ export TEST_DATABASE_URL=postgresql+asyncpg://booking:booking@localhost:5432/boo
 uv run pytest
 ```
 
-The suite includes a real-Postgres race-condition test under `tests/integration/test_race_condition.py` that verifies concurrent booking attempts deterministically yield exactly one success.
+```bash
+cd miniapp
+npx vitest run
+```
+
+The backend suite includes a real-Postgres race-condition test (`tests/integration/test_race_condition.py`) that proves concurrent booking attempts yield exactly one success.
 
 ## Migrations
 
 ```bash
 cd backend
-uv run alembic revision --autogenerate -m "describe change"   # author migration
+uv run alembic revision --autogenerate -m "describe change"
 uv run alembic upgrade head
-uv run alembic downgrade -1
 ```
 
-Migration files live under `backend/alembic/versions/`. PG enums are managed by hand — see the existing migrations for the pattern.
+## Bot setup
 
-## Project layout
+Polling mode is the default for local dev. For prod, the bot runs in webhook mode behind Caddy — see [DEPLOY.md](./DEPLOY.md).
 
-See `docs/superpowers/specs/2026-05-22-slotbook-backend-core-design.md` for full architecture rationale.
+`/start`, `/help`, `/my_bookings` are wired. Admin notifications include `[❌ Отменить]` and `[📋 Открыть в панели]` inline buttons.
+
+## Repository layout
 
 ```
 backend/
@@ -161,15 +121,36 @@ backend/
     main.py
     core/                 # config, security, errors, telegram_auth, time
     api/                  # routes + deps
+    bot/                  # aiogram routers + texts + keyboards
     db/                   # models + repositories + session
     schemas/              # Pydantic DTOs
     services/             # business logic
-    utils/
-  alembic/
+    workers/              # reminders tick + APScheduler runner
+  alembic/                # migrations
   tests/
   seed.py
-  pyproject.toml
-docker-compose.yml
+  main_bot.py
+  main_worker.py
+miniapp/
+  src/
+    app.tsx
+    pages/                # routes (incl. /admin/*)
+    features/             # cross-cutting flows (auth, booking-flow, admin-*)
+    entities/             # API hooks + presentational components
+    shared/               # UI primitives, API client, stores, Telegram wrappers
+infra/
+  caddy/Caddyfile         # production reverse-proxy config
+  postgres/init-test-db.sql
+docs/
+  superpowers/specs/      # design specs (one per sub-project)
+  superpowers/plans/      # implementation plans
+scripts/
+  deploy.sh
+  backup_db.sh
+docker-compose.yml        # dev (source bind mounts, exposed ports)
+docker-compose.prod.yml   # prod (immutable, Caddy front, no host DB port)
+.env.production.example
+DEPLOY.md
 ```
 
 ## Defending against double-booking
@@ -178,28 +159,21 @@ The booking-creation transaction runs:
 
 1. `SELECT … FROM bookings WHERE staff_id = ? AND status IN ('pending','confirmed') AND tstzrange(starts_at, ends_at, '[)') && tstzrange(new_start, new_end, '[)') FOR UPDATE`.
 2. If any rows return → `409 slot_already_taken`.
-3. Otherwise revalidate the slot against working hours and insert the booking.
+3. Otherwise revalidate against working hours and insert.
 
-This pattern is verified by `tests/integration/test_race_condition.py` (two concurrent `asyncio.gather` requests; exactly one 201 and one 409).
+A unique partial index `bookings_active_by_staff (staff_id, starts_at) WHERE status IN ('pending','confirmed')` catches the empty-table race where two concurrent INSERTs both passed step 1.
 
 ## API surface (under `/api/v1`)
 
 - `POST /auth/telegram` — exchange `initData` for a JWT.
-- `GET /services`, `GET /staff?service_id=…`, `GET /slots?service_id=…&staff_id=…&date=YYYY-MM-DD` — client browsing.
-- `POST /bookings`, `GET /bookings/my`, `POST /bookings/{id}/cancel` — client booking flow.
-- `GET /admin/dashboard`, `GET /admin/bookings`, `POST /admin/bookings`, `PATCH /admin/bookings/{id}`, `POST /admin/bookings/{id}/cancel` — admin booking management.
-- `POST /admin/services`, `PATCH /admin/services/{id}`, `DELETE /admin/services/{id}` — services CRUD.
-- `POST /admin/staff`, `PATCH /admin/staff/{id}`, `DELETE /admin/staff/{id}`, `PUT /admin/staff/{id}/services` — staff CRUD.
-- `GET /admin/staff/{id}/working-hours`, `PUT /admin/staff/{id}/working-hours`, `POST /admin/staff/{id}/exceptions`, `DELETE /admin/staff/{id}/exceptions/{ex_id}` — schedule administration.
+- Client: `GET /services`, `GET /staff?service_id=…`, `GET /slots?service_id=…&staff_id=…&date=YYYY-MM-DD`, `POST /bookings`, `GET /bookings/my`, `POST /bookings/{id}/cancel`.
+- Admin: `GET /admin/dashboard`, `GET /admin/bookings`, `POST /admin/bookings`, `PATCH /admin/bookings/{id}`, `POST /admin/bookings/{id}/cancel`.
+- Admin CRUD: `POST/PATCH/DELETE /admin/services{,/:id}`, `POST/PATCH/DELETE /admin/staff{,/:id}`, `PUT /admin/staff/:id/services`, `GET/PUT /admin/staff/:id/working-hours`, `POST/DELETE /admin/staff/:id/exceptions`.
 
-## Where this sub-project ends and the next begins
+## Plans and specs
 
-- **Sub-project 2 (Telegram Bot)** replaces the stub `NotificationService.dispatch_pending_for_booking` with aiogram-driven Bot API calls and adds a `POST /webhook/telegram` endpoint guarded by `X-Telegram-Bot-Api-Secret-Token`.
-- **Sub-project 3 (Mini App)** consumes the JWT-protected `/api/v1/*` endpoints from a React SPA served separately.
-- **Sub-project 5 (Worker)** reads `notifications` rows with `status='pending'` and `scheduled_for <= now` to send reminders.
-- **Sub-project 6 (Deploy)** introduces a production compose file, nginx/Caddy, HTTPS, and CI.
+Design specs and implementation plans for each sub-project live in `docs/superpowers/`. Each sub-project is a self-contained slice with its own spec → plan → review → merge cycle.
 
-## Plan and spec
+## Selling the template
 
-- Design spec: `docs/superpowers/specs/2026-05-22-slotbook-backend-core-design.md`
-- Implementation plan (this slice): `docs/superpowers/plans/2026-05-22-slotbook-backend-core.md`
+Pitch line: «Система онлайн-записи через Telegram». Configurable via env vars; replace `BUSINESS_NAME` and you have a new tenant. Aesthetic and Russian copy work out of the box; English/i18n is left as an exercise.

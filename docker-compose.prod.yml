@@ -1,0 +1,108 @@
+# docker-compose.prod.yml
+services:
+  api:
+    build: ./backend
+    env_file: ./.env.production
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(\"http://localhost:8000/health\").status==200 else 1)'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+    cpus: 0.5
+    networks: [slotbook]
+
+  bot:
+    build: ./backend
+    env_file: ./.env.production
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    command: uv run python main_bot.py
+    expose: ["8001"]
+    mem_limit: 256m
+    cpus: 0.25
+    networks: [slotbook]
+
+  worker:
+    build: ./backend
+    env_file: ./.env.production
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uv run python main_worker.py
+    mem_limit: 256m
+    cpus: 0.25
+    networks: [slotbook]
+
+  miniapp:
+    build:
+      context: ./miniapp
+      args:
+        VITE_API_BASE_URL: /api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    mem_limit: 64m
+    cpus: 0.1
+    networks: [slotbook]
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-booking}
+      POSTGRES_USER: ${POSTGRES_USER:-booking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-booking} -d ${POSTGRES_DB:-booking}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 512m
+    cpus: 0.5
+    networks: [slotbook]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - miniapp
+    mem_limit: 128m
+    cpus: 0.25
+    networks: [slotbook]
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  slotbook:
+    driver: bridge

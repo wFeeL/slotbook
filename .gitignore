@@ -14,6 +14,10 @@ build/
 # Env
 .env
 .env.local
+.env.production
+
+# Backups
+backups/
 
 # IDE
 .idea/
