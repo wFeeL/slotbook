@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useCreateBooking } from '@/entities/booking/api';
 import { useServices } from '@/entities/service/api';
@@ -25,12 +25,19 @@ export function ConfirmStep() {
   const staff = useStaffForService(serviceId);
   const createBooking = useCreateBooking();
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const slotTakenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useBackButton(() => navigate('/book/time'));
 
   useEffect(() => {
-    if (!startsAt) navigate('/book/time', { replace: true });
-  }, [startsAt, navigate]);
+    if (!serviceId) navigate('/book/service', { replace: true });
+    else if (!staffId) navigate('/book/staff', { replace: true });
+    else if (!startsAt) navigate('/book/time', { replace: true });
+  }, [serviceId, staffId, startsAt, navigate]);
+
+  useEffect(() => () => {
+    if (slotTakenTimerRef.current) clearTimeout(slotTakenTimerRef.current);
+  }, []);
 
   const service = services.data?.find((s) => s.id === serviceId);
   const member = staff.data?.find((s) => s.id === staffId);
@@ -55,7 +62,7 @@ export function ConfirmStep() {
         setErrorBanner(err.message);
         if (err.code === 'slot_already_taken') {
           // Send user back to time step to pick another slot
-          setTimeout(() => navigate('/book/time'), 1200);
+          slotTakenTimerRef.current = setTimeout(() => navigate('/book/time'), 1200);
         }
       } else {
         setErrorBanner('Что-то пошло не так. Попробуйте ещё раз.');

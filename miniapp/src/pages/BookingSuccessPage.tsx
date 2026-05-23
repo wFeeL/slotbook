@@ -84,11 +84,6 @@ export function BookingSuccessPage() {
         )}
       </div>
 
-      <style>{`
-        @keyframes draw {
-          to { stroke-dashoffset: 0; }
-        }
-      `}</style>
     </div>
   );
 }

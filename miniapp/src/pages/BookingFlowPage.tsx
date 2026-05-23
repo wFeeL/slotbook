@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { ServiceStep } from '@/features/booking-flow/steps/ServiceStep';
 import { StaffStep } from '@/features/booking-flow/steps/StaffStep';
 import { DateStep } from '@/features/booking-flow/steps/DateStep';
@@ -8,6 +8,7 @@ import { ConfirmStep } from '@/features/booking-flow/steps/ConfirmStep';
 export function BookingFlowPage() {
   return (
     <Routes>
+      <Route index element={<Navigate to="service" replace />} />
       <Route path="service" element={<ServiceStep />} />
       <Route path="staff" element={<StaffStep />} />
       <Route path="date" element={<DateStep />} />

@@ -37,8 +37,8 @@ export function App() {
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<OnboardingPage />} />
-            <Route path="/book/*" element={<BookingFlowPage />} />
             <Route path="/book/success/:bookingId" element={<BookingSuccessPage />} />
+            <Route path="/book/*" element={<BookingFlowPage />} />
             <Route path="/my-bookings" element={<MyBookingsPage />} />
             <Route path="/my-bookings/:id" element={<BookingDetailPage />} />
             <Route path="*" element={<NotFoundPage />} />
