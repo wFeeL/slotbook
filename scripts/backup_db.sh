@@ -12,8 +12,9 @@ mkdir -p backups
 ts=$(date +%Y%m%d_%H%M%S)
 out="backups/booking_${ts}.sql.gz"
 
-# shellcheck disable=SC1091
-set -a; source .env.production; set +a
+# Read just POSTGRES_USER / POSTGRES_DB if set; defaults are baked into compose env.
+POSTGRES_USER=$(grep -E '^POSTGRES_USER=' .env.production | cut -d= -f2- | head -1)
+POSTGRES_DB=$(grep -E '^POSTGRES_DB=' .env.production | cut -d= -f2- | head -1)
 
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
   pg_dump -U "${POSTGRES_USER:-booking}" -d "${POSTGRES_DB:-booking}" | gzip > "$out"
