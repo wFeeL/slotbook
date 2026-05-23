@@ -153,9 +153,12 @@ async def admin_list_staff(
 
 @router.post("/staff", response_model=StaffRead, status_code=status.HTTP_201_CREATED)
 async def create_staff(body: StaffCreate, _admin: AdminUser, session: SessionDep) -> StaffRead:
+    from fastapi import HTTPException
+    from sqlalchemy.exc import IntegrityError
+
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
-    branch_id = getattr(body, "branch_id", None)
+    branch_id = body.branch_id
     if branch_id is None:
         default_branch = await BranchesRepo(session).get_default(business.id)
         if default_branch is None:
@@ -165,14 +168,35 @@ async def create_staff(body: StaffCreate, _admin: AdminUser, session: SessionDep
         branch = await BranchesRepo(session).get(branch_id)
         if branch is None or branch.business_id != business.id:
             raise NotFound("Branch not found")
+
+    if body.user_id is not None:
+        target = await UsersRepo(session).get_by_id(body.user_id)
+        if target is None:
+            raise NotFound("User not found")
+        if target.role not in {UserRole.STAFF, UserRole.ADMIN, UserRole.SUPERADMIN}:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="User role must be staff/admin/superadmin",
+            )
+
     staff = StaffMember(
         business_id=business.id,
         branch_id=branch_id,
+        user_id=body.user_id,
         name=body.name,
         description=body.description,
     )
     StaffRepo(session).add(staff)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        if "ux_staff_user_active" in str(exc.orig or exc):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Этот пользователь уже привязан к другому мастеру",
+            ) from exc
+        raise
     await session.refresh(staff)
     return StaffRead.model_validate(staff)
 

@@ -246,6 +246,7 @@ export const api = {
       },
       create(body: {
         branch_id?: number | null;
+        user_id?: number | null;
         name: string;
         description?: string | null;
       }): Promise<StaffRead> {

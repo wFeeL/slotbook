@@ -14,6 +14,7 @@ class StaffRead(BaseModel):
 
 class StaffCreate(BaseModel):
     branch_id: int | None = None
+    user_id: int | None = None
     name: str = Field(min_length=1, max_length=255)
     description: str | None = None
 

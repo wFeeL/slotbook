@@ -207,6 +207,61 @@ async def test_admin_patch_staff_rejects_client_role(
 
 
 @pytest.mark.asyncio
+async def test_admin_create_staff_with_user_id_links(
+    client, db_session, business, admin_user, settings
+) -> None:
+    target = User(telegram_id=5101, first_name="T", role=UserRole.STAFF)
+    db_session.add(target)
+    await db_session.commit()
+    await db_session.refresh(target)
+
+    res = await client.post(
+        "/api/v1/admin/staff",
+        json={"name": "New", "user_id": target.id},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["user_id"] == target.id
+
+
+@pytest.mark.asyncio
+async def test_admin_create_staff_rejects_client_user_id(
+    client, db_session, business, admin_user, client_user, settings
+) -> None:
+    res = await client.post(
+        "/api/v1/admin/staff",
+        json={"name": "New", "user_id": client_user.id},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_admin_create_staff_conflict_returns_409(
+    client, db_session, business, admin_user, settings
+) -> None:
+    target = User(telegram_id=5102, first_name="T", role=UserRole.STAFF)
+    db_session.add(target)
+    await db_session.flush()
+    existing = StaffMember(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        name="Existing",
+        user_id=target.id,
+        is_active=True,
+    )
+    db_session.add(existing)
+    await db_session.commit()
+
+    res = await client.post(
+        "/api/v1/admin/staff",
+        json={"name": "Dup", "user_id": target.id},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_admin_patch_staff_conflicting_link_returns_409(
     client, db_session, business, admin_user, settings
 ) -> None:

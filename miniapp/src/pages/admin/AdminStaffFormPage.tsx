@@ -14,6 +14,7 @@ export function AdminStaffFormPage() {
     try {
       const staff = await create.mutateAsync({
         branch_id: values.branch_id,
+        user_id: values.user_id ?? null,
         name: values.name,
         description: values.description || null,
       });
@@ -30,6 +31,7 @@ export function AdminStaffFormPage() {
     <div className="pt-2 pb-6">
       <h2 className="text-xl text-ink font-display mb-4">Новый сотрудник</h2>
       <StaffForm
+        showUserLink
         submitting={create.isPending}
         onSubmit={handleSubmit}
         onCancel={() => navigate('/admin/staff')}
