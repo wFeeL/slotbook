@@ -8,9 +8,9 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 
 export function StaffStep() {
   const navigate = useNavigate();
-  const { serviceId, setStaff } = useBookingFlowStore();
+  const { serviceId, branchId, setStaff } = useBookingFlowStore();
   const haptic = useHaptic();
-  const staff = useStaffForService(serviceId);
+  const staff = useStaffForService(serviceId, branchId);
 
   useBackButton(() => navigate('/book/service'));
 
