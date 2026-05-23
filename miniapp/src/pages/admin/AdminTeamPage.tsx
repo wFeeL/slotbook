@@ -12,6 +12,39 @@ function fmtDate(s: string): string {
   return new Date(s).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
 }
 
+function roleLabel(role: string): string {
+  if (role === 'admin') return 'Администратор';
+  if (role === 'superadmin') return 'Главный администратор';
+  if (role === 'staff') return 'Сотрудник';
+  return role;
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall through */
+  }
+  // Fallback for iOS Telegram WebView lacking clipboard API.
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export function AdminTeamPage() {
   const q = useTeam();
   const revoke = useRevokeInvite();
@@ -76,17 +109,41 @@ export function AdminTeamPage() {
               </h3>
               {q.data.invites.map((i) => (
                 <Card key={i.id} surface="shell">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-ink font-semibold">{i.role}</div>
-                      <div className="text-sienna-deep text-xs">
-                        истекает {fmtDate(i.expires_at)}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-ink font-semibold">
+                          {roleLabel(i.role)}
+                        </div>
+                        <div className="text-sienna-deep text-xs">
+                          создано {fmtDate(i.created_at)} · истекает {fmtDate(i.expires_at)}
+                        </div>
                       </div>
-                      <div className="text-sienna-deep text-xs truncate">{i.url}</div>
+                      <Badge tone={i.role === 'admin' || i.role === 'superadmin' ? 'rose' : 'sage'}>
+                        {i.role}
+                      </Badge>
                     </div>
-                    <Button variant="ghost" onClick={() => handleRevoke(i.id)}>
-                      Отозвать
-                    </Button>
+                    <div className="rounded-2xl bg-cream border border-sand p-2.5 text-xs text-ink font-mono break-all">
+                      {i.url}
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="md"
+                        variant="secondary"
+                        onClick={async () => {
+                          const ok = await copyText(i.url);
+                          pushToast(
+                            ok ? 'success' : 'error',
+                            ok ? 'Ссылка скопирована' : 'Не удалось скопировать',
+                          );
+                        }}
+                      >
+                        Скопировать
+                      </Button>
+                      <Button variant="ghost" onClick={() => handleRevoke(i.id)}>
+                        Отозвать
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               ))}
