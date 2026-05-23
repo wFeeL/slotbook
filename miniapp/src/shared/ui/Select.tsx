@@ -1,4 +1,4 @@
-import type { SelectHTMLAttributes, ReactNode } from 'react';
+import { useId, type SelectHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -8,7 +8,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, error, className, id, children, ...rest }: SelectProps) {
-  const inputId = id ?? `sel-${Math.random().toString(36).slice(2, 8)}`;
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
   return (
     <div className="flex flex-col gap-1">
       {label && (

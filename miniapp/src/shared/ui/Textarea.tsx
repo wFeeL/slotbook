@@ -1,4 +1,4 @@
-import type { TextareaHTMLAttributes } from 'react';
+import { useId, type TextareaHTMLAttributes } from 'react';
 import { cn } from '../lib/cn';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -7,7 +7,8 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export function Textarea({ label, error, className, id, ...rest }: TextareaProps) {
-  const inputId = id ?? `txt-${Math.random().toString(36).slice(2, 8)}`;
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
   return (
     <div className="flex flex-col gap-1">
       {label && (
