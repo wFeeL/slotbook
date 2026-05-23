@@ -82,3 +82,53 @@ export const ErrorDetailSchema = z.object({
   message: z.string(),
   extra: z.record(z.unknown()).optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Admin schemas
+// ---------------------------------------------------------------------------
+
+export const AdminBookingReadSchema = z.object({
+  id: z.number(),
+  client_id: z.number(),
+  service_id: z.number(),
+  staff_id: z.number(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+  status: BookingStatusSchema,
+  client_comment: z.string().nullable(),
+  admin_comment: z.string().nullable(),
+});
+export type AdminBookingRead = z.infer<typeof AdminBookingReadSchema>;
+
+export const ScheduleExceptionTypeSchema = z.enum(['day_off', 'custom_hours']);
+export type ScheduleExceptionTypeT = z.infer<typeof ScheduleExceptionTypeSchema>;
+
+export const WorkingHoursEntrySchema = z.object({
+  weekday: z.number().int().min(0).max(6),
+  start_time: z.string(),
+  end_time: z.string(),
+  is_active: z.boolean(),
+});
+export type WorkingHoursEntry = z.infer<typeof WorkingHoursEntrySchema>;
+
+export const ScheduleExceptionReadSchema = z.object({
+  id: z.number(),
+  date: z.string(),
+  start_time: z.string().nullable(),
+  end_time: z.string().nullable(),
+  type: ScheduleExceptionTypeSchema,
+  reason: z.string().nullable(),
+});
+export type ScheduleExceptionRead = z.infer<typeof ScheduleExceptionReadSchema>;
+
+export const DashboardCountsSchema = z.object({
+  today: z.number(),
+  this_week: z.number(),
+  no_show_30d: z.number(),
+});
+export type DashboardCounts = z.infer<typeof DashboardCountsSchema>;
+
+export const DashboardResponseSchema = z.object({
+  counts: DashboardCountsSchema,
+});
+export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
