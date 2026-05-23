@@ -24,3 +24,7 @@ class BookingRead(BaseModel):
     client_comment: str | None
 
     model_config = {"from_attributes": True}
+
+
+class BookingReschedule(BaseModel):
+    starts_at: AwareDatetime

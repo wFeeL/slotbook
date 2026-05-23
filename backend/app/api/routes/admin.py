@@ -28,6 +28,7 @@ from app.schemas.admin import (
     DashboardCounts,
     DashboardResponse,
 )
+from app.schemas.bookings import BookingReschedule
 from app.schemas.schedules import (
     ScheduleExceptionCreate,
     ScheduleExceptionRead,
@@ -375,6 +376,32 @@ async def admin_cancel_booking(
         actor_user_id=admin.id,
         actor_role=admin.role,
         booking_id=booking_id,
+    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
+    return AdminBookingRead.model_validate(booking)
+
+
+@router.post("/bookings/{booking_id}/reschedule", response_model=AdminBookingRead)
+async def admin_reschedule_booking(
+    booking_id: int,
+    body: BookingReschedule,
+    admin: AdminUser,
+    session: SessionDep,
+    request: Request,
+) -> AdminBookingRead:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    booking = await BookingService(session).reschedule_booking(
+        business=business,
+        actor_user_id=admin.id,
+        actor_role=admin.role,
+        booking_id=booking_id,
+        new_starts_at=body.starts_at,
     )
     try:
         await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
