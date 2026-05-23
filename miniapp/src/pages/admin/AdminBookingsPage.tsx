@@ -1,0 +1,78 @@
+// miniapp/src/pages/admin/AdminBookingsPage.tsx
+import { Link } from 'react-router';
+import { useState } from 'react';
+import { Card } from '@/shared/ui/Card';
+import { Skeleton } from '@/shared/ui/Skeleton';
+import { Button } from '@/shared/ui/Button';
+import { Badge } from '@/shared/ui/Badge';
+import { BookingFilters, type FilterValues } from '@/features/admin-bookings/BookingFilters';
+import { useAdminBookings } from '@/entities/admin-booking/api';
+
+function todayDateString(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function statusTone(status: string): 'sage' | 'clay' | 'sienna' | 'rose' | 'sand' {
+  if (status === 'pending' || status === 'confirmed') return 'sage';
+  if (status === 'completed') return 'sienna';
+  if (status === 'no_show') return 'rose';
+  if (status.startsWith('cancelled')) return 'clay';
+  return 'sand';
+}
+
+export function AdminBookingsPage() {
+  const [filters, setFilters] = useState<FilterValues>({
+    date: todayDateString(),
+    status: '',
+    staffId: '',
+  });
+
+  const q = useAdminBookings({
+    date: filters.date || undefined,
+    status: filters.status || undefined,
+    limit: 50,
+  });
+
+  return (
+    <div className="pt-2 pb-6 flex flex-col gap-4">
+      <header className="flex items-center justify-between">
+        <h2 className="text-xl text-ink font-display">Записи</h2>
+        <Link to="/admin/bookings/new">
+          <Button size="md">+ Создать</Button>
+        </Link>
+      </header>
+
+      <BookingFilters values={filters} onChange={setFilters} />
+
+      {q.isLoading && <Skeleton height={80} />}
+      {!q.isLoading && (q.data ?? []).length === 0 && (
+        <p className="text-sienna text-sm">Нет записей по выбранным фильтрам.</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {(q.data ?? []).map((b) => (
+          <Link key={b.id} to={`/admin/bookings/${b.id}`}>
+            <Card interactive surface="shell">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-ink font-semibold">
+                    {new Date(b.starts_at).toLocaleString('ru-RU', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </div>
+                  <div className="text-sienna text-sm">
+                    Услуга #{b.service_id} · Сотрудник #{b.staff_id}
+                  </div>
+                </div>
+                <Badge tone={statusTone(b.status)}>{b.status}</Badge>
+              </div>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
