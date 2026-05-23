@@ -18,6 +18,7 @@ export function usePatchBooking() {
       api.admin.bookings.patch(id, patch),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'booking'] });
       qc.invalidateQueries({ queryKey: adminDashboardKeys.root() });
     },
   });
@@ -29,6 +30,7 @@ export function useCreateAdminBooking() {
     mutationFn: api.admin.bookings.create,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'booking'] });
       qc.invalidateQueries({ queryKey: adminDashboardKeys.root() });
     },
   });
@@ -40,6 +42,7 @@ export function useAdminCancelBooking() {
     mutationFn: api.admin.bookings.cancel,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'booking'] });
       qc.invalidateQueries({ queryKey: adminDashboardKeys.root() });
     },
   });
