@@ -319,6 +319,8 @@ class BookingService:
         now = now.replace(tzinfo=UTC) if now.tzinfo is None else now.astimezone(UTC)
 
         is_admin = actor_role in {UserRole.ADMIN, UserRole.SUPERADMIN}
+        is_staff = actor_role == UserRole.STAFF
+        is_privileged = is_admin or is_staff
 
         # 2. Load booking — 404 if missing or wrong business
         booking = await BookingsRepo(self.session).get(booking_id)
@@ -326,7 +328,7 @@ class BookingService:
             raise NotFound("Booking not found")
 
         # 3. Ownership check
-        if not is_admin and booking.client_id != actor_user_id:
+        if not is_privileged and booking.client_id != actor_user_id:
             raise Forbidden("You can only cancel your own bookings")
 
         # 4. Status check
@@ -335,7 +337,7 @@ class BookingService:
             raise CannotCancelInCurrentStatus()
 
         # 5. Time limit check (clients only)
-        if not is_admin:
+        if not is_privileged:
             hours_left = (booking.starts_at - now).total_seconds() / 3600.0
             if hours_left < business.min_cancellation_hours:
                 raise CancellationTooLate()
@@ -343,7 +345,9 @@ class BookingService:
         # 6. Update booking status
         previous_status = booking.status.value
         booking.status = (
-            BookingStatus.CANCELLED_BY_ADMIN if is_admin else BookingStatus.CANCELLED_BY_CLIENT
+            BookingStatus.CANCELLED_BY_ADMIN
+            if is_privileged
+            else BookingStatus.CANCELLED_BY_CLIENT
         )
         booking.cancelled_at = now
 
@@ -424,19 +428,21 @@ class BookingService:
         new_starts_at_utc = new_starts_at.astimezone(UTC)
 
         is_admin = actor_role in {UserRole.ADMIN, UserRole.SUPERADMIN}
+        is_staff = actor_role == UserRole.STAFF
+        is_privileged = is_admin or is_staff
 
         booking = await BookingsRepo(self.session).get(booking_id)
         if booking is None or booking.business_id != business.id:
             raise NotFound("Booking not found")
 
-        if not is_admin and booking.client_id != actor_user_id:
+        if not is_privileged and booking.client_id != actor_user_id:
             raise Forbidden("You can only reschedule your own bookings")
 
         if booking.status not in {BookingStatus.PENDING, BookingStatus.CONFIRMED}:
             raise CannotCancelInCurrentStatus()
 
         # Time-limit guard (clients only) — same as cancel
-        if not is_admin:
+        if not is_privileged:
             hours_left = (booking.starts_at - now).total_seconds() / 3600.0
             if hours_left < business.min_cancellation_hours:
                 raise CancellationTooLate()

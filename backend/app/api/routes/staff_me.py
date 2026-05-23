@@ -4,13 +4,13 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, LinkedStaff, SessionDep
 from app.core.errors import NotFound
 from app.core.time import local_date_bounds_utc
-from app.db.enums import BookingStatus
+from app.db.enums import BookingStatus, UserRole
 from app.db.models.booking import Booking
 from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
@@ -24,6 +24,7 @@ from app.db.repositories.schedules import (
     WorkingHoursRepo,
 )
 from app.db.repositories.staff import StaffRepo
+from app.schemas.bookings import BookingReschedule
 from app.schemas.schedules import (
     ScheduleExceptionCreate,
     ScheduleExceptionRead,
@@ -363,3 +364,85 @@ async def delete_my_exception(
     if not deleted:
         raise NotFound("Исключение не найдено")
     await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Staff cancels / reschedules own booking (writes notifications via service)
+# ---------------------------------------------------------------------------
+
+
+async def _ensure_own_booking(session, staff, booking_id: int):
+    """Return booking if it belongs to this staff; raise NotFound otherwise."""
+    from app.db.repositories.bookings import BookingsRepo as _BR
+    bk = await _BR(session).get(booking_id)
+    if bk is None or bk.staff_id != staff.id:
+        raise NotFound("Запись не найдена")
+    return bk
+
+
+@router.post("/bookings/{booking_id}/cancel", response_model=StaffBookingRead)
+async def cancel_my_booking(
+    booking_id: int,
+    staff: LinkedStaff,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+) -> StaffBookingRead:
+    from app.services.booking_service import BookingService
+    from app.services.notification_service import NotificationService
+
+    await _ensure_own_booking(session, staff, booking_id)
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+
+    booking = await BookingService(session).cancel_booking(
+        business=business,
+        actor_user_id=user.id,
+        actor_role=UserRole.STAFF,
+        booking_id=booking_id,
+    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        pass
+
+    svc = await session.get(Service, booking.service_id)
+    cli = await session.get(User, booking.client_id)
+    return _booking_to_read(booking, svc, cli)
+
+
+@router.post("/bookings/{booking_id}/reschedule", response_model=StaffBookingRead)
+async def reschedule_my_booking(
+    booking_id: int,
+    body: BookingReschedule,
+    staff: LinkedStaff,
+    user: CurrentUser,
+    session: SessionDep,
+    request: Request,
+) -> StaffBookingRead:
+    from app.services.booking_service import BookingService
+    from app.services.notification_service import NotificationService
+
+    await _ensure_own_booking(session, staff, booking_id)
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+
+    booking = await BookingService(session).reschedule_booking(
+        business=business,
+        actor_user_id=user.id,
+        actor_role=UserRole.STAFF,
+        booking_id=booking_id,
+        new_starts_at=body.starts_at,
+    )
+    try:
+        await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
+            booking.id
+        )
+    except Exception:
+        pass
+
+    svc = await session.get(Service, booking.service_id)
+    cli = await session.get(User, booking.client_id)
+    return _booking_to_read(booking, svc, cli)

@@ -36,6 +36,7 @@ const AdminTeamPage = lazy(() => import('./pages/admin/AdminTeamPage').then((m) 
 
 // Staff cabinet chunks
 const StaffCabinetPage = lazy(() => import('./pages/staff/StaffCabinetPage').then((m) => ({ default: m.StaffCabinetPage })));
+const StaffRescheduleWizardPage = lazy(() => import('./pages/staff/StaffRescheduleWizardPage').then((m) => ({ default: m.StaffRescheduleWizardPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,6 +103,14 @@ export function App() {
                 element={
                   <RequireStaff>
                     <StaffCabinetPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/me/bookings/:id/reschedule"
+                element={
+                  <RequireStaff>
+                    <StaffRescheduleWizardPage />
                   </RequireStaff>
                 }
               />

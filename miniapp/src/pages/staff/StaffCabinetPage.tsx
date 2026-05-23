@@ -6,6 +6,7 @@ import { Card } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import {
+  useCancelMyBooking,
   useMyBookings,
   useMySchedule,
   useMyWorkingHours,
@@ -70,6 +71,7 @@ export function StaffCabinetPage() {
   const today = useMemo(todayLocalISO, []);
   const todays = useMyBookings({ date: today });
   const updateBooking = useUpdateMyBooking();
+  const cancelBooking = useCancelMyBooking();
 
   const [weekStart, setWeekStart] = useState<string>(() => currentMondayISO());
   const schedule = useMySchedule(weekStart);
@@ -103,6 +105,17 @@ export function StaffCabinetPage() {
     try {
       await updateBooking.mutateAsync({ id: b.id, status });
       pushToast('success', 'Статус обновлён');
+    } catch (e) {
+      pushToast('error', e instanceof Error ? e.message : 'Не удалось');
+    }
+  }
+
+  async function cancel(b: StaffBookingRead) {
+    const ok = await showConfirm('Отменить эту запись? Клиент получит уведомление.');
+    if (!ok) return;
+    try {
+      await cancelBooking.mutateAsync(b.id);
+      pushToast('success', 'Запись отменена');
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось');
     }
@@ -173,7 +186,7 @@ export function StaffCabinetPage() {
                   </div>
                 )}
                 {(b.status === 'pending' || b.status === 'confirmed') && (
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex gap-2 pt-1 flex-wrap">
                     <Button size="md" onClick={() => mark(b, 'completed')}>
                       Завершить
                     </Button>
@@ -183,6 +196,16 @@ export function StaffCabinetPage() {
                       onClick={() => mark(b, 'no_show')}
                     >
                       Не пришёл
+                    </Button>
+                    <Button
+                      size="md"
+                      variant="secondary"
+                      onClick={() => navigate(`/me/bookings/${b.id}/reschedule`)}
+                    >
+                      Перенести
+                    </Button>
+                    <Button size="md" variant="ghost" onClick={() => cancel(b)}>
+                      Отменить
                     </Button>
                   </div>
                 )}

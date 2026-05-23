@@ -500,5 +500,19 @@ export const api = {
         z.unknown(),
       ).then(() => undefined);
     },
+    cancelBooking(id: number): Promise<StaffBookingRead> {
+      return request(
+        `/api/v1/staff/me/bookings/${id}/cancel`,
+        { method: 'POST' },
+        StaffBookingReadSchema,
+      );
+    },
+    rescheduleBooking(id: number, startsAt: string): Promise<StaffBookingRead> {
+      return request(
+        `/api/v1/staff/me/bookings/${id}/reschedule`,
+        { method: 'POST', body: JSON.stringify({ starts_at: startsAt }) },
+        StaffBookingReadSchema,
+      );
+    },
   },
 };

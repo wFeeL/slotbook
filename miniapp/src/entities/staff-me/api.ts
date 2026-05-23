@@ -90,3 +90,26 @@ export function useDeleteMyException() {
     },
   });
 }
+
+export function useCancelMyBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.staffMe.cancelBooking(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'bookings'] });
+      qc.invalidateQueries({ queryKey: [...KEY, 'schedule'] });
+    },
+  });
+}
+
+export function useRescheduleMyBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: number; starts_at: string }) =>
+      api.staffMe.rescheduleBooking(args.id, args.starts_at),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'bookings'] });
+      qc.invalidateQueries({ queryKey: [...KEY, 'schedule'] });
+    },
+  });
+}

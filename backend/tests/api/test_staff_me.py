@@ -403,3 +403,103 @@ async def test_unlinked_working_hours_put_403(client, staff_user, settings) -> N
         headers=auth_headers(staff_user, settings),
     )
     assert res.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Staff cancel / reschedule own bookings
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_cancel_own_booking(
+    client, db_session, business, staff_user, linked_staff, settings
+) -> None:
+    bk = await _seed_booking(db_session, business, linked_staff, hours_offset=24)
+    res = await client.post(
+        f"/api/v1/staff/me/bookings/{bk.id}/cancel",
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["status"] == "cancelled_by_admin"
+
+
+@pytest.mark.asyncio
+async def test_cancel_other_staff_booking_404(
+    client, db_session, business, staff_user, linked_staff, settings
+) -> None:
+    other = StaffMember(
+        business_id=business.id, branch_id=business._default_branch_id, name="X"
+    )
+    db_session.add(other)
+    await db_session.commit()
+    await db_session.refresh(other)
+    bk = await _seed_booking(db_session, business, other, hours_offset=24)
+    res = await client.post(
+        f"/api/v1/staff/me/bookings/{bk.id}/cancel",
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_reschedule_own_booking(
+    client, db_session, business, staff_user, linked_staff, settings
+) -> None:
+    from datetime import time as time_t
+    from app.db.enums import BookingSource
+    from app.db.models.booking import Booking
+    from app.db.models.schedule import WorkingHours
+    from app.db.models.service import Service
+    from app.db.models.staff import StaffService
+    from app.db.models.user import User as UserModel
+
+    for wd in range(7):
+        db_session.add(
+            WorkingHours(
+                staff_id=linked_staff.id,
+                weekday=wd,
+                start_time=time_t(0, 0),
+                end_time=time_t(23, 59),
+                is_active=True,
+            )
+        )
+    svc = Service(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        title="Cut",
+        duration_minutes=30,
+        price="1000",
+    )
+    db_session.add(svc)
+    await db_session.flush()
+    db_session.add(StaffService(staff_id=linked_staff.id, service_id=svc.id))
+    cli = UserModel(telegram_id=99001, first_name="Cli", role=UserRole.CLIENT)
+    db_session.add(cli)
+    await db_session.flush()
+
+    # Pick an aligned future slot well ahead (tomorrow 10:00 UTC, divisible by 15)
+    step = business.slot_step_minutes
+    starts = datetime.now(UTC).replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    starts = starts.replace(minute=(starts.minute // step) * step)
+    bk = Booking(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        client_id=cli.id,
+        service_id=svc.id,
+        staff_id=linked_staff.id,
+        starts_at=starts,
+        ends_at=starts + timedelta(minutes=30),
+        status=BookingStatus.CONFIRMED,
+        source=BookingSource.MINI_APP,
+    )
+    db_session.add(bk)
+    await db_session.commit()
+    await db_session.refresh(bk)
+
+    new_starts = starts + timedelta(hours=2)
+    res = await client.post(
+        f"/api/v1/staff/me/bookings/{bk.id}/reschedule",
+        json={"starts_at": new_starts.isoformat()},
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 200, res.text
