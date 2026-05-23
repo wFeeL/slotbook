@@ -4,6 +4,8 @@ import {
   type AdminBookingRead,
   BookingReadSchema,
   type BookingRead,
+  type BusinessRead,
+  BusinessReadSchema,
   DashboardResponseSchema,
   type DashboardResponse,
   ScheduleExceptionReadSchema,
@@ -84,6 +86,26 @@ export const api = {
   admin: {
     dashboard(): Promise<DashboardResponse> {
       return request('/api/v1/admin/dashboard', { method: 'GET' }, DashboardResponseSchema);
+    },
+    business: {
+      get(): Promise<BusinessRead> {
+        return request('/api/v1/admin/business', { method: 'GET' }, BusinessReadSchema);
+      },
+      update(
+        body: Partial<{
+          name: string;
+          timezone: string;
+          booking_buffer_minutes: number;
+          min_cancellation_hours: number;
+          slot_step_minutes: number;
+        }>,
+      ): Promise<BusinessRead> {
+        return request(
+          '/api/v1/admin/business',
+          { method: 'PATCH', body: JSON.stringify(body) },
+          BusinessReadSchema,
+        );
+      },
     },
     services: {
       create(body: {
@@ -201,6 +223,7 @@ export const api = {
     bookings: {
       list(params: {
         date?: string;
+        week_start?: string;
         staff_id?: number;
         service_id?: number;
         status?: string;
@@ -209,6 +232,7 @@ export const api = {
       }): Promise<AdminBookingRead[]> {
         const search = new URLSearchParams();
         if (params.date) search.set('date', params.date);
+        if (params.week_start) search.set('week_start', params.week_start);
         if (params.staff_id !== undefined) search.set('staff_id', String(params.staff_id));
         if (params.service_id !== undefined) search.set('service_id', String(params.service_id));
         if (params.status) search.set('status', params.status);

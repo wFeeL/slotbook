@@ -141,3 +141,13 @@ export const StaffReadWithServicesSchema = z.object({
   service_ids: z.array(z.number()),
 });
 export type StaffReadWithServices = z.infer<typeof StaffReadWithServicesSchema>;
+
+export const BusinessReadSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  timezone: z.string(),
+  booking_buffer_minutes: z.number(),
+  min_cancellation_hours: z.number(),
+  slot_step_minutes: z.number(),
+});
+export type BusinessRead = z.infer<typeof BusinessReadSchema>;
