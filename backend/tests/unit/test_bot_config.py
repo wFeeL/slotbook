@@ -2,7 +2,6 @@ import pytest
 
 from app.core.config import BotMode, Settings
 
-
 _PROD_GRADE_SECRET = "a" * 32  # meets the >=32 chars production requirement
 
 
