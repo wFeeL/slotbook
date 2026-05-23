@@ -19,7 +19,7 @@ import { getWebApp } from '@/shared/telegram/webapp';
 
 export function ConfirmStep() {
   const navigate = useNavigate();
-  const { serviceId, staffId, startsAt, comment, setComment, reset } = useBookingFlowStore();
+  const { serviceId, staffId, startsAt, comment, setComment } = useBookingFlowStore();
   const haptic = useHaptic();
   const services = useServices();
   const staff = useStaffForService(serviceId);
@@ -46,7 +46,8 @@ export function ConfirmStep() {
         client_comment: comment.trim() || null,
       });
       haptic.success();
-      reset();
+      // Navigate first; BookingSuccessPage will call reset() on mount to avoid
+      // triggering the guard-effects in still-mounted booking-flow steps.
       navigate(`/book/success/${booking.id}`);
     } catch (err) {
       haptic.error();

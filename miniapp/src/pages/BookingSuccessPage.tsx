@@ -4,14 +4,19 @@ import { Blob } from '@/shared/ui/Blob';
 import { Button } from '@/shared/ui/Button';
 import { useHaptic, useMainButton } from '@/shared/telegram/hooks';
 import { getWebApp } from '@/shared/telegram/webapp';
+import { useBookingFlowStore } from '@/shared/store/booking-flow-store';
 
 export function BookingSuccessPage() {
   const navigate = useNavigate();
   const { bookingId } = useParams();
   const haptic = useHaptic();
+  const reset = useBookingFlowStore((s) => s.reset);
 
   useEffect(() => {
     haptic.success();
+    // Reset the booking-flow wizard state here (after navigation) so that
+    // guard-effects in still-mounted flow steps don't trigger a cascade redirect.
+    reset();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
