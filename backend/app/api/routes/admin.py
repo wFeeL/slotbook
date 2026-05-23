@@ -5,8 +5,10 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Query, Request, Response, status
+from sqlalchemy import select
 
 from app.api.deps import AdminUser, SessionDep
+from app.core.config import Settings, get_settings
 from app.core.errors import CannotCancelInCurrentStatus, NotFound
 from app.core.time import local_date_bounds_utc
 from app.db.enums import BookingSource, BookingStatus, UserRole
@@ -14,6 +16,7 @@ from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
 from app.db.models.user import User
+from app.db.repositories.admin_invites import AdminInvitesRepo
 from app.db.repositories.audit import AuditRepo
 from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.businesses import BusinessesRepo
@@ -46,6 +49,12 @@ from app.schemas.staff import (
     StaffUpdate,
 )
 from app.schemas.statistics import StatisticsPeriod, StatisticsResponse
+from app.schemas.team import (
+    AdminInviteCreate,
+    AdminInviteRead,
+    TeamMember,
+    TeamResponse,
+)
 from app.services import export_service
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
@@ -536,3 +545,76 @@ async def export_bookings_xlsx(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# Admin team / invites
+# ---------------------------------------------------------------------------
+
+
+def _invite_url(token: str, settings: Settings) -> str:
+    if not settings.BOT_USERNAME:
+        return f"https://t.me/your_bot?start=invite_{token}"
+    return f"https://t.me/{settings.BOT_USERNAME}?start=invite_{token}"
+
+
+@router.get("/team", response_model=TeamResponse)
+async def admin_team(_admin: AdminUser, session: SessionDep) -> TeamResponse:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    stmt = (
+        select(User)
+        .where(User.role.in_([UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF]))
+        .order_by(User.created_at.desc())
+    )
+    members = [
+        TeamMember.model_validate(u) for u in (await session.execute(stmt)).scalars().all()
+    ]
+    invites_raw = await AdminInvitesRepo(session).list_active(business.id)
+    settings = get_settings()
+    invites = [
+        AdminInviteRead(
+            id=i.id,
+            token=i.token,
+            role=i.role,
+            created_at=i.created_at,
+            expires_at=i.expires_at,
+            url=_invite_url(i.token, settings),
+        )
+        for i in invites_raw
+    ]
+    return TeamResponse(members=members, invites=invites)
+
+
+@router.post("/invites", response_model=AdminInviteRead, status_code=status.HTTP_201_CREATED)
+async def admin_create_invite(
+    body: AdminInviteCreate, admin: AdminUser, session: SessionDep
+) -> AdminInviteRead:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    invite = await AdminInvitesRepo(session).create(
+        business_id=business.id,
+        role=UserRole(body.role),
+        created_by_user_id=admin.id,
+        ttl_hours=body.ttl_hours,
+    )
+    await session.commit()
+    settings = get_settings()
+    return AdminInviteRead(
+        id=invite.id,
+        token=invite.token,
+        role=invite.role,
+        created_at=invite.created_at,
+        expires_at=invite.expires_at,
+        url=_invite_url(invite.token, settings),
+    )
+
+
+@router.delete("/invites/{invite_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_revoke_invite(
+    invite_id: int, _admin: AdminUser, session: SessionDep
+) -> None:
+    ok = await AdminInvitesRepo(session).revoke(invite_id)
+    if not ok:
+        raise NotFound("Invite not found or already used")
+    await session.commit()
