@@ -1,8 +1,24 @@
 import { useEffect, useState } from 'react';
 import { setReAuthHandler } from '@/shared/api/client';
+import { api } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/store/auth-store';
 import { getWebApp } from '@/shared/telegram/webapp';
 import { exchangeInitData } from './api';
+
+async function loadStaffMe() {
+  try {
+    const staffMe = await api.staffMe.profile();
+    useAuthStore.getState().setStaffMe(staffMe);
+  } catch {
+    // Fallback so RequireStaff doesn't hang in a loading state.
+    useAuthStore.getState().setStaffMe({
+      linked: false,
+      staff: null,
+      branch: null,
+      business_timezone: 'UTC',
+    });
+  }
+}
 
 export type AuthStatus = 'pending' | 'authenticated' | 'unauthenticated';
 
@@ -26,9 +42,6 @@ export function useAuth(): { status: AuthStatus; firstName: string | null } {
         const url = new URL(window.location.href);
         const devToken = url.searchParams.get('devToken');
         if (devToken) {
-          // We don't have user info here. Construct a placeholder; the real
-          // user info will come from a backend echo endpoint when we add one.
-          // For now, just set the token; UI can degrade.
           await setSession(devToken, {
             id: 0,
             telegram_id: 0,
@@ -37,6 +50,7 @@ export function useAuth(): { status: AuthStatus; firstName: string | null } {
             username: null,
             role: 'client',
           });
+          await loadStaffMe();
           if (!cancelled) setStatus('authenticated');
           return;
         }
@@ -48,6 +62,7 @@ export function useAuth(): { status: AuthStatus; firstName: string | null } {
         const result = await exchangeInitData(initData);
         if (cancelled) return;
         await setSession(result.access_token, result.user);
+        await loadStaffMe();
         if (!cancelled) setStatus('authenticated');
 
         // Register the re-auth handler for 401 retries.

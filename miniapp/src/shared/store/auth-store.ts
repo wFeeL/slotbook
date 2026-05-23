@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { setAuthToken } from '../api/client';
-import type { UserRead } from '../api/types';
+import type { StaffMeResponse, UserRead } from '../api/types';
 import { getWebApp } from '../telegram/webapp';
 
 const STORAGE_KEY = 'slotbook.jwt';
@@ -8,7 +8,9 @@ const STORAGE_KEY = 'slotbook.jwt';
 interface AuthState {
   token: string | null;
   user: UserRead | null;
+  staffMe: StaffMeResponse | null;
   setSession(token: string, user: UserRead): Promise<void>;
+  setStaffMe(value: StaffMeResponse | null): void;
   clearSession(): Promise<void>;
   loadFromStorage(): Promise<void>;
 }
@@ -89,15 +91,19 @@ async function removeCloudStorage(): Promise<void> {
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   user: null,
+  staffMe: null,
   async setSession(token, user) {
     setAuthToken(token);
     await writeCloudStorage(token);
     set({ token, user });
   },
+  setStaffMe(value) {
+    set({ staffMe: value });
+  },
   async clearSession() {
     setAuthToken(null);
     await removeCloudStorage();
-    set({ token: null, user: null });
+    set({ token: null, user: null, staffMe: null });
   },
   async loadFromStorage() {
     const token = await readCloudStorage();
