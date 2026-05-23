@@ -140,7 +140,14 @@ export function AdminBookingDetailPage() {
               })}
             </div>
             <div className="text-sienna text-sm mt-1">
-              Услуга #{b.service_id} · Сотрудник #{b.staff_id} · Клиент #{b.client_id}
+              {b.service_title ?? `Услуга #${b.service_id}`}
+              {' · '}
+              {b.staff_name ?? `Сотрудник #${b.staff_id}`}
+            </div>
+            <div className="text-sienna text-xs mt-0.5">
+              Клиент: {b.client_first_name ?? `#${b.client_id}`}
+              {b.client_last_name ? ` ${b.client_last_name}` : ''}
+              {b.client_telegram_id ? ` · TG ${b.client_telegram_id}` : ''}
             </div>
             {b.client_comment && (
               <div className="text-ink text-sm mt-2 italic">«{b.client_comment}»</div>

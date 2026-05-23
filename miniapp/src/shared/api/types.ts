@@ -111,6 +111,11 @@ export const AdminBookingReadSchema = z.object({
   status: BookingStatusSchema,
   client_comment: z.string().nullable(),
   admin_comment: z.string().nullable(),
+  service_title: z.string().nullable().optional(),
+  staff_name: z.string().nullable().optional(),
+  client_first_name: z.string().nullable().optional(),
+  client_last_name: z.string().nullable().optional(),
+  client_telegram_id: z.number().nullable().optional(),
 });
 export type AdminBookingRead = z.infer<typeof AdminBookingReadSchema>;
 

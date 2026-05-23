@@ -40,7 +40,7 @@ export function DateStep() {
         <p className="text-sienna text-base mt-2">Выберите удобный день</p>
       </header>
 
-      <div className="-mx-5 px-5 overflow-x-auto">
+      <div className="-mx-5 px-5 overflow-x-auto no-scrollbar">
         <div className="flex gap-2 pb-2 min-w-max">
           {days.map((d) => {
             const iso = format(d, 'yyyy-MM-dd');

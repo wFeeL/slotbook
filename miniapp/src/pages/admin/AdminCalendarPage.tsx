@@ -29,6 +29,8 @@ type CalendarBooking = {
   status: string;
   service_id: number;
   staff_id: number;
+  service_title?: string | null;
+  staff_name?: string | null;
 };
 
 export function AdminCalendarPage() {
@@ -84,7 +86,7 @@ export function AdminCalendarPage() {
         </Button>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
         <button
           type="button"
           onClick={() => setStaffId(null)}
@@ -156,7 +158,9 @@ export function AdminCalendarPage() {
                               })}
                             </div>
                             <div className="text-sienna text-xs">
-                              Услуга #{b.service_id} · Сотрудник #{b.staff_id}
+                              {b.service_title ?? `Услуга #${b.service_id}`}
+                              {' · '}
+                              {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                             </div>
                           </div>
                           <Badge

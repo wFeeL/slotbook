@@ -33,6 +33,12 @@ class AdminBookingRead(BaseModel):
     status: BookingStatus
     client_comment: str | None
     admin_comment: str | None
+    # Enriched fields populated at the route layer via lookup tables.
+    service_title: str | None = None
+    staff_name: str | None = None
+    client_first_name: str | None = None
+    client_last_name: str | None = None
+    client_telegram_id: int | None = None
 
 
 class DashboardCounts(BaseModel):

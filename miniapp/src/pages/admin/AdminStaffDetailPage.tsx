@@ -42,10 +42,12 @@ export function AdminStaffDetailPage() {
 
   async function saveProfile(values: StaffFormValues) {
     try {
-      await update.mutateAsync({
-        id,
-        patch: { name: values.name, description: values.description || null },
-      });
+      const patch: Parameters<typeof update.mutateAsync>[0]['patch'] = {
+        name: values.name,
+        description: values.description || null,
+      };
+      if (values.branch_id != null) patch.branch_id = values.branch_id;
+      await update.mutateAsync({ id, patch });
       pushToast('success', 'Сохранено');
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось');
@@ -78,7 +80,7 @@ export function AdminStaffDetailPage() {
         {!staff.is_active && <Badge tone="clay">Архив</Badge>}
       </header>
 
-      <div className="flex gap-2 overflow-x-auto -mx-5 px-5">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -97,7 +99,11 @@ export function AdminStaffDetailPage() {
       {tab === 'profile' && (
         <>
           <StaffForm
-            initial={{ name: staff.name, description: staff.description ?? '' }}
+            initial={{
+              name: staff.name,
+              description: staff.description ?? '',
+              branch_id: staff.branch_id,
+            }}
             submitting={update.isPending}
             onSubmit={saveProfile}
           />

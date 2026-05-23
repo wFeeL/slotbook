@@ -56,7 +56,9 @@ export function AdminDashboardPage() {
                       })}
                     </div>
                     <div className="text-sienna text-sm">
-                      Услуга #{b.service_id} · Сотрудник #{b.staff_id}
+                      {b.service_title ?? `Услуга #${b.service_id}`}
+                      {' · '}
+                      {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                     </div>
                   </div>
                   <Badge tone={b.status === 'confirmed' ? 'sage' : 'sand'}>{b.status}</Badge>
