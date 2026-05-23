@@ -47,6 +47,20 @@ class ScheduleExceptionsRepo:
         )
         return list((await self.session.execute(stmt)).scalars().all())
 
+    async def list_for_staff_range(
+        self, staff_id: int, start: date_t, end: date_t
+    ) -> list[ScheduleException]:
+        stmt = (
+            select(ScheduleException)
+            .where(
+                ScheduleException.staff_id == staff_id,
+                ScheduleException.date >= start,
+                ScheduleException.date < end,
+            )
+            .order_by(ScheduleException.date)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     def add(self, exception: ScheduleException) -> None:
         self.session.add(exception)
 
