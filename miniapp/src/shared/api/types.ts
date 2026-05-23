@@ -132,3 +132,12 @@ export const DashboardResponseSchema = z.object({
   counts: DashboardCountsSchema,
 });
 export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
+
+export const StaffReadWithServicesSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  is_active: z.boolean(),
+  service_ids: z.array(z.number()),
+});
+export type StaffReadWithServices = z.infer<typeof StaffReadWithServicesSchema>;

@@ -4,43 +4,29 @@ import { Toggle } from '@/shared/ui/Toggle';
 import { Button } from '@/shared/ui/Button';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { useAdminServices } from '@/entities/admin-service/api';
-import { useReplaceStaffServices } from '@/entities/admin-staff/api';
+import { useAdminStaff, useReplaceStaffServices } from '@/entities/admin-staff/api';
 import { pushToast } from '@/shared/store/toast-store';
-import { api } from '@/shared/api/endpoints';
-import { useQuery } from '@tanstack/react-query';
 
 interface StaffServicesEditorProps {
   staffId: number;
 }
 
-function useStaffServiceIds(staffId: number) {
-  // The backend doesn't expose a direct "services for staff" admin endpoint;
-  // we reverse-derive by listing all services and asking the public staff
-  // endpoint per service. If the staff appears, that service is assigned.
-  return useQuery({
-    queryKey: ['admin', 'staff', staffId, 'service-ids'],
-    queryFn: async () => {
-      const services = await api.services.list();
-      const ids: number[] = [];
-      for (const s of services) {
-        const list = await api.staff.listForService(s.id);
-        if (list.some((m) => m.id === staffId)) ids.push(s.id);
-      }
-      return ids;
-    },
-    staleTime: 30 * 1000,
-  });
-}
-
 export function StaffServicesEditor({ staffId }: StaffServicesEditorProps) {
   const services = useAdminServices();
-  const currentIds = useStaffServiceIds(staffId);
+  const staffList = useAdminStaff();
+  const currentIds = (staffList.data ?? []).find((s) => s.id === staffId)?.service_ids ?? [];
   const replace = useReplaceStaffServices();
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
+  // Hydrate selected from the staff list once it loads. Track only the
+  // identity of the underlying data so we don't re-hydrate on every render.
   useEffect(() => {
-    if (currentIds.data) setSelected(new Set(currentIds.data));
-  }, [currentIds.data]);
+    if (staffList.data) {
+      setSelected(new Set(currentIds));
+    }
+    // currentIds is derived from staffList.data; depending on staffList.data is enough.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffList.data, staffId]);
 
   function toggle(id: number) {
     setSelected((s) => {
@@ -60,7 +46,7 @@ export function StaffServicesEditor({ staffId }: StaffServicesEditorProps) {
     }
   }
 
-  if (services.isLoading || currentIds.isLoading) {
+  if (services.isLoading || staffList.isLoading) {
     return <Skeleton height={120} />;
   }
 
