@@ -1,3 +1,18 @@
+import { Route, Routes } from 'react-router';
+import { ServiceStep } from '@/features/booking-flow/steps/ServiceStep';
+import { StaffStep } from '@/features/booking-flow/steps/StaffStep';
+import { DateStep } from '@/features/booking-flow/steps/DateStep';
+import { TimeStep } from '@/features/booking-flow/steps/TimeStep';
+import { ConfirmStep } from '@/features/booking-flow/steps/ConfirmStep';
+
 export function BookingFlowPage() {
-  return <div className="p-6">Booking flow — stub</div>;
+  return (
+    <Routes>
+      <Route path="service" element={<ServiceStep />} />
+      <Route path="staff" element={<StaffStep />} />
+      <Route path="date" element={<DateStep />} />
+      <Route path="time" element={<TimeStep />} />
+      <Route path="confirm" element={<ConfirmStep />} />
+    </Routes>
+  );
 }
