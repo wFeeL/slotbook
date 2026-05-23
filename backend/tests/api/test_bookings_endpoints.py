@@ -252,6 +252,62 @@ async def test_create_booking_within_buffer_window_returns_422(
 
 
 @pytest.mark.asyncio
+async def test_create_booking_with_mismatched_branches_returns_404(
+    client, db_session, business, client_user, settings
+) -> None:
+    """If service and staff belong to different branches, booking creation must 404."""
+    from app.db.models.branch import Branch
+    from app.db.models.schedule import WorkingHours
+    from app.db.models.service import Service
+    from app.db.models.staff import StaffMember, StaffService
+
+    # Create a second branch.
+    second_branch = Branch(
+        business_id=business.id, name="Second", timezone=business.timezone, sort_order=1
+    )
+    db_session.add(second_branch)
+    await db_session.commit()
+    await db_session.refresh(second_branch)
+
+    # Service on default branch, staff on second branch — mismatch.
+    svc = Service(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        title="Mismatch Svc",
+        duration_minutes=60,
+    )
+    staff = StaffMember(
+        business_id=business.id, branch_id=second_branch.id, name="WrongBranchStaff"
+    )
+    db_session.add_all([svc, staff])
+    await db_session.flush()
+    db_session.add(StaffService(staff_id=staff.id, service_id=svc.id))
+    for d in range(7):
+        db_session.add(
+            WorkingHours(
+                staff_id=staff.id,
+                weekday=d,
+                start_time=time(0, 0),
+                end_time=time(23, 59),
+                is_active=True,
+            )
+        )
+    await db_session.commit()
+
+    payload = {
+        "service_id": svc.id,
+        "staff_id": staff.id,
+        "starts_at": _future_slot(),
+    }
+    resp = await client.post(
+        "/api/v1/bookings",
+        json=payload,
+        headers=auth_headers(client_user, settings),
+    )
+    assert resp.status_code == 404, resp.text
+
+
+@pytest.mark.asyncio
 async def test_my_bookings_returns_only_own(
     client, db_session, business, client_user, settings
 ) -> None:  # type: ignore[no-untyped-def]
