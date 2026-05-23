@@ -29,6 +29,14 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         await session.commit()
     bot: Bot = create_bot(settings)
     _app.state.bot = bot
+    # Probe bot identity once at startup; cache username for invite-URL generation.
+    _app.state.bot_username = settings.BOT_USERNAME
+    try:
+        me = await bot.get_me()
+        if me.username:
+            _app.state.bot_username = me.username
+    except Exception:
+        pass  # ignore — falls back to settings.BOT_USERNAME
     try:
         yield
     finally:
