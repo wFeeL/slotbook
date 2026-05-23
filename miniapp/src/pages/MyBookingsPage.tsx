@@ -4,6 +4,7 @@ import { useMyBookings } from '@/entities/booking/api';
 import { BookingCard } from '@/entities/booking/ui/BookingCard';
 import { Blob } from '@/shared/ui/Blob';
 import { Button } from '@/shared/ui/Button';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { useBackButton } from '@/shared/telegram/hooks';
 import type { BookingRead } from '@/shared/api/types';
@@ -49,10 +50,12 @@ export function MyBookingsPage() {
         )}
 
         {!bookings.isLoading && upcoming.length === 0 && history.length === 0 && (
-          <div className="text-center py-12 flex flex-col gap-4 items-center">
-            <p className="text-sienna-deep">У вас пока нет записей.</p>
-            <Button onClick={() => navigate('/book/service')}>Записаться</Button>
-          </div>
+          <EmptyState
+            glyph="calendar"
+            title="Пока тихо"
+            description="Здесь будут ваши предстоящие встречи. Запишитесь — и здесь оживёт."
+            action={<Button onClick={() => navigate('/book/branch')}>Записаться</Button>}
+          />
         )}
 
         {upcoming.length > 0 && (
