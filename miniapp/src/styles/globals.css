@@ -7,10 +7,13 @@
   --color-sand: #E8D5C4;
   --color-shell: #FFFFFF;
   --color-sienna: #B8917A;
+  /* Sienna-deep — WCAG AA pass (4.6:1) on cream. Use for body/secondary text. */
+  --color-sienna-deep: #8A6B57;
   --color-ink: #3A2E26;
   --color-rose: #D4736E;
   --color-rose-deep: #B85A55;
   --color-sage: #8BA888;
+  --color-sage-deep: #5F7A5C;
   --color-clay: #C46A4B;
 
   /* Fonts */

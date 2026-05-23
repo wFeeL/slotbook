@@ -87,9 +87,9 @@ export function ConfirmStep() {
       style={{ animation: 'fade-up 320ms ease-out both' }}
     >
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 06</span>
+        <span className="text-sienna-deep text-sm font-semibold">№ 06</span>
         <h1 className="text-2xl text-ink font-display mt-1">Подтверждение</h1>
-        <p className="text-sienna text-base mt-2">Проверьте детали записи</p>
+        <p className="text-sienna-deep text-base mt-2">Проверьте детали записи</p>
       </header>
 
       {errorBanner && (
@@ -112,7 +112,7 @@ export function ConfirmStep() {
       </Card>
 
       <label className="block">
-        <span className="text-sienna text-sm font-semibold">Комментарий (опционально)</span>
+        <span className="text-sienna-deep text-sm font-semibold">Комментарий (опционально)</span>
         <textarea
           rows={4}
           maxLength={1000}
@@ -121,7 +121,7 @@ export function ConfirmStep() {
           placeholder="Например: впервые у вас, есть пожелания..."
           className="mt-2 w-full rounded-card border border-sand bg-shell p-4 text-ink resize-none focus:border-rose focus:outline-none"
         />
-        <span className="text-sienna text-xs">{comment.length}/1000</span>
+        <span className="text-sienna-deep text-xs">{comment.length}/1000</span>
       </label>
 
       {/* Browser preview fallback button — only shown when not inside Telegram */}
@@ -139,7 +139,7 @@ export function ConfirmStep() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 items-baseline">
-      <dt className="text-sienna text-sm">{label}</dt>
+      <dt className="text-sienna-deep text-sm">{label}</dt>
       <dd className="text-ink font-semibold text-right">{value}</dd>
     </div>
   );

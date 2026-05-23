@@ -38,9 +38,9 @@ export function TimeStep() {
   return (
     <div className="px-5 pt-8 pb-32 max-w-md mx-auto" style={{ animation: 'fade-up 320ms ease-out both' }}>
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 05</span>
+        <span className="text-sienna-deep text-sm font-semibold">№ 05</span>
         <h1 className="text-2xl text-ink font-display mt-1">Время</h1>
-        <p className="text-sienna text-base mt-2">
+        <p className="text-sienna-deep text-base mt-2">
           {date && `Свободное время на ${formatLocalDate(`${date}T00:00:00`)}`}
         </p>
       </header>
@@ -54,7 +54,7 @@ export function TimeStep() {
       )}
 
       {slots.data && slots.data.slots.length === 0 && (
-        <div className="text-sienna text-center mt-12 flex flex-col gap-3 items-center">
+        <div className="text-sienna-deep text-center mt-12 flex flex-col gap-3 items-center">
           <p>На этот день нет свободных слотов.</p>
           <Button variant="secondary" onClick={() => navigate('/book/date')}>
             Выбрать другой день

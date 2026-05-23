@@ -44,7 +44,7 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
       <div className="flex-1 bg-sand/40 rounded-full h-3 relative">
         <div className="bg-rose rounded-full h-3" style={{ width: `${pct}%` }} />
       </div>
-      <div className="w-10 text-right text-sm text-sienna">{value}</div>
+      <div className="w-10 text-right text-sm text-sienna-deep">{value}</div>
     </div>
   );
 }
@@ -126,7 +126,7 @@ export function AdminStatisticsPage() {
               'rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap',
               period === p.value
                 ? 'bg-rose text-shell'
-                : 'bg-shell border border-sand text-sienna',
+                : 'bg-shell border border-sand text-sienna-deep',
             )}
           >
             {p.label}
@@ -139,23 +139,23 @@ export function AdminStatisticsPage() {
         <>
           <div className="grid grid-cols-2 gap-3">
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase">Выручка</div>
+              <div className="text-sienna-deep text-xs uppercase">Выручка</div>
               <div className="text-2xl text-ink font-display">{data.revenue} ₽</div>
             </Card>
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase">Всего записей</div>
+              <div className="text-sienna-deep text-xs uppercase">Всего записей</div>
               <div className="text-2xl text-ink font-display">{data.total_bookings}</div>
             </Card>
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase">Завершено</div>
+              <div className="text-sienna-deep text-xs uppercase">Завершено</div>
               <div className="text-2xl text-ink font-display">{data.completed_count}</div>
             </Card>
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase">Не пришли</div>
+              <div className="text-sienna-deep text-xs uppercase">Не пришли</div>
               <div className="text-2xl text-ink font-display">{data.no_show_count}</div>
             </Card>
             <Card surface="shell" className="col-span-2">
-              <div className="text-sienna text-xs uppercase">Доля отмен</div>
+              <div className="text-sienna-deep text-xs uppercase">Доля отмен</div>
               <div className="text-2xl text-ink font-display">
                 {(data.cancellation_rate * 100).toFixed(1)}%
               </div>
@@ -164,14 +164,14 @@ export function AdminStatisticsPage() {
 
           {data.daily_volume.length > 0 && (
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase mb-2">Записи по дням</div>
+              <div className="text-sienna-deep text-xs uppercase mb-2">Записи по дням</div>
               <Sparkline data={data.daily_volume.map((d) => d.bookings_count)} />
             </Card>
           )}
 
           {data.top_services.length > 0 && (
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase mb-2">Топ услуг</div>
+              <div className="text-sienna-deep text-xs uppercase mb-2">Топ услуг</div>
               <div className="flex flex-col gap-2">
                 {data.top_services.map((s) => (
                   <BarRow
@@ -187,7 +187,7 @@ export function AdminStatisticsPage() {
 
           {data.top_staff.length > 0 && (
             <Card surface="shell">
-              <div className="text-sienna text-xs uppercase mb-2">Топ сотрудников</div>
+              <div className="text-sienna-deep text-xs uppercase mb-2">Топ сотрудников</div>
               <div className="flex flex-col gap-2">
                 {data.top_staff.map((s) => (
                   <BarRow
@@ -215,7 +215,7 @@ export function AdminStatisticsPage() {
           </Select>
           <div className="flex flex-col gap-1">
             <div className="flex items-end justify-between gap-2">
-              <span className="text-sienna text-sm font-semibold">Период</span>
+              <span className="text-sienna-deep text-sm font-semibold">Период</span>
               {(from || to) && (
                 <button
                   type="button"
@@ -240,7 +240,7 @@ export function AdminStatisticsPage() {
               min={from || undefined}
               onChange={(e) => setTo(e.target.value)}
             />
-            <p className="text-sienna/60 text-xs">
+            <p className="text-sienna-deep/60 text-xs">
               Оставьте пустым, чтобы выгрузить все записи.
             </p>
           </div>

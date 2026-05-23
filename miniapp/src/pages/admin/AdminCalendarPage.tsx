@@ -96,7 +96,7 @@ export function AdminCalendarPage() {
             'rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap',
             staffId === null
               ? 'bg-rose text-shell'
-              : 'bg-shell border border-sand text-sienna',
+              : 'bg-shell border border-sand text-sienna-deep',
           )}
         >
           Все
@@ -110,7 +110,7 @@ export function AdminCalendarPage() {
               'rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap',
               staffId === s.id
                 ? 'bg-rose text-shell'
-                : 'bg-shell border border-sand text-sienna',
+                : 'bg-shell border border-sand text-sienna-deep',
             )}
           >
             {s.name}
@@ -132,14 +132,14 @@ export function AdminCalendarPage() {
             >
               <div
                 className={cn(
-                  'text-sienna text-xs font-semibold uppercase tracking-wide',
+                  'text-sienna-deep text-xs font-semibold uppercase tracking-wide',
                   isToday && 'text-rose',
                 )}
               >
                 {WEEKDAYS[(d.getDay() + 6) % 7]} · {d.getDate()}
               </div>
               {dayBookings.length === 0 ? (
-                <div className="text-sienna/60 text-xs italic">Нет записей</div>
+                <div className="text-sienna-deep/60 text-xs italic">Нет записей</div>
               ) : (
                 [...dayBookings]
                   .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
@@ -159,7 +159,7 @@ export function AdminCalendarPage() {
                                 minute: '2-digit',
                               })}
                             </div>
-                            <div className="text-sienna text-xs">
+                            <div className="text-sienna-deep text-xs">
                               {b.service_title ?? `Услуга #${b.service_id}`}
                               {' · '}
                               {b.staff_name ?? `Сотрудник #${b.staff_id}`}

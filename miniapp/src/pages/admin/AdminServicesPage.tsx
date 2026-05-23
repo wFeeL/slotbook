@@ -22,7 +22,7 @@ export function AdminServicesPage() {
 
       {q.isLoading && <Skeleton height={80} />}
       {!q.isLoading && (q.data ?? []).length === 0 && (
-        <p className="text-sienna text-sm">Пока нет услуг.</p>
+        <p className="text-sienna-deep text-sm">Пока нет услуг.</p>
       )}
       <div className="flex flex-col gap-2">
         {(q.data ?? []).map((s) => (
@@ -31,7 +31,7 @@ export function AdminServicesPage() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-ink font-semibold">{s.title}</div>
-                  <div className="text-sienna text-sm">
+                  <div className="text-sienna-deep text-sm">
                     {s.duration_minutes} мин · {s.price ?? '—'} ₽
                   </div>
                 </div>

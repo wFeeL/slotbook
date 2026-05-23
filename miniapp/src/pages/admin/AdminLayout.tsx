@@ -106,7 +106,7 @@ export function AdminLayout() {
                 className={({ isActive }) =>
                   cn(
                     'flex flex-col items-center gap-1 py-2.5 transition',
-                    isActive ? 'text-rose' : 'text-sienna',
+                    isActive ? 'text-rose' : 'text-sienna-deep',
                   )
                 }
               >

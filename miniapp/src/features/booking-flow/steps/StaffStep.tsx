@@ -27,9 +27,9 @@ export function StaffStep() {
   return (
     <div className="px-5 pt-8 pb-32 max-w-md mx-auto" style={{ animation: 'fade-up 320ms ease-out both' }}>
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 03</span>
+        <span className="text-sienna-deep text-sm font-semibold">№ 03</span>
         <h1 className="text-2xl text-ink font-display mt-1">Специалист</h1>
-        <p className="text-sienna text-base mt-2">Кто проведёт встречу?</p>
+        <p className="text-sienna-deep text-base mt-2">Кто проведёт встречу?</p>
       </header>
 
       <div className="flex flex-col gap-3">
@@ -48,7 +48,7 @@ export function StaffStep() {
           <StaffCard key={s.id} staff={s} onSelect={() => handleSelect(s.id)} />
         ))}
         {staff.data?.length === 0 && (
-          <div className="text-sienna text-center mt-12">
+          <div className="text-sienna-deep text-center mt-12">
             Нет специалистов, оказывающих эту услугу.
           </div>
         )}

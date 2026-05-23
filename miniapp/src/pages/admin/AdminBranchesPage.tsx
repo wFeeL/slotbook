@@ -21,7 +21,7 @@ export function AdminBranchesPage() {
 
       {q.isLoading && <Skeleton height={80} />}
       {!q.isLoading && (q.data ?? []).length === 0 && (
-        <p className="text-sienna text-sm">Пока нет филиалов.</p>
+        <p className="text-sienna-deep text-sm">Пока нет филиалов.</p>
       )}
       <div className="flex flex-col gap-2">
         {(q.data ?? []).map((b) => (
@@ -30,7 +30,7 @@ export function AdminBranchesPage() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-ink font-semibold">{b.name}</div>
-                  <div className="text-sienna text-sm">
+                  <div className="text-sienna-deep text-sm">
                     {b.address ?? '—'} · {b.timezone}
                   </div>
                 </div>

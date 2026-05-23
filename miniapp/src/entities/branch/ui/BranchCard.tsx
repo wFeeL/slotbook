@@ -12,7 +12,7 @@ export function BranchCard({ branch, onSelect }: Props) {
       <div className="flex flex-col gap-1">
         <span className="text-lg font-semibold text-ink">{branch.name}</span>
         {branch.address && (
-          <span className="text-sm text-sienna">{branch.address}</span>
+          <span className="text-sm text-sienna-deep">{branch.address}</span>
         )}
       </div>
     </Card>

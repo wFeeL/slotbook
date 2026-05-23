@@ -49,13 +49,13 @@ export function RescheduleWizardPage() {
   });
 
   if (bookings.isLoading) {
-    return <div className="p-6 text-sienna">Загружаем...</div>;
+    return <div className="p-6 text-sienna-deep">Загружаем...</div>;
   }
 
   if (!booking) {
     return (
       <div className="p-6 flex flex-col gap-4">
-        <p className="text-sienna">Запись не найдена.</p>
+        <p className="text-sienna-deep">Запись не найдена.</p>
         <Button onClick={() => navigate('/my-bookings')}>К списку</Button>
       </div>
     );
@@ -97,11 +97,11 @@ export function RescheduleWizardPage() {
         style={{ animation: 'fade-up 320ms ease-out both' }}
       >
         <header className="mb-6">
-          <span className="text-sienna text-sm font-semibold uppercase">
+          <span className="text-sienna-deep text-sm font-semibold uppercase">
             Перенос записи № {booking.id}
           </span>
           <h1 className="text-2xl text-ink font-display mt-1">Новое время</h1>
-          <p className="text-sienna text-base mt-2">
+          <p className="text-sienna-deep text-base mt-2">
             Текущее: {formatLocalDate(booking.starts_at)}
           </p>
         </header>
@@ -129,7 +129,7 @@ export function RescheduleWizardPage() {
                     <span
                       className={cn(
                         'text-xs uppercase',
-                        selected ? 'opacity-90' : 'text-sienna',
+                        selected ? 'opacity-90' : 'text-sienna-deep',
                       )}
                     >
                       {label.weekday}
@@ -152,7 +152,7 @@ export function RescheduleWizardPage() {
             </div>
           )}
           {slots.data && slots.data.slots.length === 0 && (
-            <p className="text-sienna text-center mt-6">На этот день нет свободных слотов.</p>
+            <p className="text-sienna-deep text-center mt-6">На этот день нет свободных слотов.</p>
           )}
           {slots.data && slots.data.slots.length > 0 && (
             <div className="grid grid-cols-4 gap-2">

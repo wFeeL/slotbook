@@ -21,13 +21,13 @@ export function OnboardingPage() {
           className="flex flex-col gap-2"
           style={{ animation: 'fade-up 320ms ease-out both' }}
         >
-          <span className="text-sienna text-sm font-semibold tracking-wide uppercase">
+          <span className="text-sienna-deep text-sm font-semibold tracking-wide uppercase">
             {businessName}
           </span>
           <h1 className="text-display text-ink font-display leading-tight">
             Привет, {firstName ?? 'друг'} <span className="text-rose">✦</span>
           </h1>
-          <p className="text-sienna text-base">
+          <p className="text-sienna-deep text-base">
             Здесь живёт ваша запись.<br />Тихая и заботливая.
           </p>
         </header>
@@ -56,7 +56,7 @@ export function OnboardingPage() {
         </div>
 
         <footer
-          className="text-center text-sienna text-xs mt-auto"
+          className="text-center text-sienna-deep text-xs mt-auto"
           style={{ animation: 'fade-up 320ms 160ms ease-out both' }}
         >
           <span>✦ {businessName} ✦</span>
