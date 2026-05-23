@@ -286,6 +286,67 @@ async def delete_exception(
 # ---------------------------------------------------------------------------
 
 
+async def _enrich_bookings(
+    session: "SessionDep", bookings: list
+) -> list[AdminBookingRead]:
+    """Batch-load related service/staff/user rows and produce AdminBookingRead with names."""
+    if not bookings:
+        return []
+    service_ids = {b.service_id for b in bookings}
+    staff_ids = {b.staff_id for b in bookings}
+    user_ids = {b.client_id for b in bookings}
+
+    services_map: dict[int, Service] = {
+        s.id: s
+        for s in (
+            await session.execute(select(Service).where(Service.id.in_(service_ids)))
+        ).scalars().all()
+    }
+    staff_map: dict[int, StaffMember] = {
+        s.id: s
+        for s in (
+            await session.execute(select(StaffMember).where(StaffMember.id.in_(staff_ids)))
+        ).scalars().all()
+    }
+    users_map: dict[int, User] = {
+        u.id: u
+        for u in (
+            await session.execute(select(User).where(User.id.in_(user_ids)))
+        ).scalars().all()
+    }
+
+    out: list[AdminBookingRead] = []
+    for b in bookings:
+        svc = services_map.get(b.service_id)
+        stf = staff_map.get(b.staff_id)
+        usr = users_map.get(b.client_id)
+        out.append(
+            AdminBookingRead(
+                id=b.id,
+                branch_id=b.branch_id,
+                client_id=b.client_id,
+                service_id=b.service_id,
+                staff_id=b.staff_id,
+                starts_at=b.starts_at,
+                ends_at=b.ends_at,
+                status=b.status,
+                client_comment=b.client_comment,
+                admin_comment=b.admin_comment,
+                service_title=svc.title if svc else None,
+                staff_name=stf.name if stf else None,
+                client_first_name=usr.first_name if usr else None,
+                client_last_name=usr.last_name if usr else None,
+                client_telegram_id=usr.telegram_id if usr else None,
+            )
+        )
+    return out
+
+
+async def _enrich_booking(session: "SessionDep", booking) -> AdminBookingRead:
+    rows = await _enrich_bookings(session, [booking])
+    return rows[0]
+
+
 @router.get("/bookings", response_model=list[AdminBookingRead])
 async def admin_list_bookings(
     admin: AdminUser,
@@ -338,7 +399,7 @@ async def admin_list_bookings(
             limit=limit,
             offset=offset,
         )
-    return [AdminBookingRead.model_validate(b) for b in bookings]
+    return await _enrich_bookings(session, bookings)
 
 
 @router.patch("/bookings/{booking_id}", response_model=AdminBookingRead)
@@ -374,7 +435,7 @@ async def admin_patch_booking(
 
     await session.commit()
     await session.refresh(booking)
-    return AdminBookingRead.model_validate(booking)
+    return await _enrich_booking(session, booking)
 
 
 @router.post("/bookings", response_model=AdminBookingRead, status_code=status.HTTP_201_CREATED)
@@ -420,7 +481,7 @@ async def admin_create_booking(
         )
     except Exception:
         log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
-    return AdminBookingRead.model_validate(booking)
+    return await _enrich_booking(session, booking)
 
 
 @router.post("/bookings/{booking_id}/cancel", response_model=AdminBookingRead)
@@ -444,7 +505,7 @@ async def admin_cancel_booking(
         )
     except Exception:
         log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
-    return AdminBookingRead.model_validate(booking)
+    return await _enrich_booking(session, booking)
 
 
 @router.post("/bookings/{booking_id}/reschedule", response_model=AdminBookingRead)
@@ -470,7 +531,7 @@ async def admin_reschedule_booking(
         )
     except Exception:
         log.exception("notification.dispatch_failed_in_route", booking_id=booking.id)
-    return AdminBookingRead.model_validate(booking)
+    return await _enrich_booking(session, booking)
 
 
 @router.get("/dashboard", response_model=DashboardResponse)

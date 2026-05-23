@@ -60,6 +60,12 @@
   }
 }
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; width: 0; height: 0; }
+}
+
 @keyframes blob-morph {
   0%, 100% { d: path('M40,0 C62,5 70,30 65,55 C60,75 40,90 20,80 C0,72 -5,45 5,25 C12,8 25,-3 40,0 Z'); }
   33% { d: path('M40,0 C55,8 75,25 72,50 C68,68 50,82 28,78 C8,72 -2,50 2,28 C8,10 22,-2 40,0 Z'); }

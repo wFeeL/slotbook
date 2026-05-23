@@ -67,8 +67,16 @@ export function AdminBookingsPage() {
                     })}
                   </div>
                   <div className="text-sienna text-sm">
-                    Услуга #{b.service_id} · Сотрудник #{b.staff_id}
+                    {b.service_title ?? `Услуга #${b.service_id}`}
+                    {' · '}
+                    {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                   </div>
+                  {b.client_first_name && (
+                    <div className="text-sienna text-xs mt-0.5">
+                      {b.client_first_name}
+                      {b.client_last_name ? ` ${b.client_last_name}` : ''}
+                    </div>
+                  )}
                 </div>
                 <Badge tone={statusTone(b.status)}>{b.status}</Badge>
               </div>

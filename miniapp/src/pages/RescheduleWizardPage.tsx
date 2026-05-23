@@ -108,7 +108,7 @@ export function RescheduleWizardPage() {
 
         <section className="mb-6">
           <h2 className="text-ink font-display text-lg mb-3">День</h2>
-          <div className="-mx-5 px-5 overflow-x-auto">
+          <div className="-mx-5 px-5 overflow-x-auto no-scrollbar">
             <div className="flex gap-2 pb-2 min-w-max">
               {days.map((d) => {
                 const iso = format(d, 'yyyy-MM-dd');

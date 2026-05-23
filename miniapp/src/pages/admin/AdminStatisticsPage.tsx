@@ -101,7 +101,7 @@ export function AdminStatisticsPage() {
         </Button>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto -mx-5 px-5">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
         {PERIODS.map((p) => (
           <button
             key={p.value}
