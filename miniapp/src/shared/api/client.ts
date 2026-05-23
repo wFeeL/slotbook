@@ -26,7 +26,7 @@ export function getAuthToken(): string | null {
   return currentToken;
 }
 
-export function setReAuthHandler(fn: () => Promise<string | null>): void {
+export function setReAuthHandler(fn: (() => Promise<string | null>) | null): void {
   reAuthHandler = fn;
 }
 
