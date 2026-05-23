@@ -287,7 +287,7 @@ async def delete_exception(
 
 
 async def _enrich_bookings(
-    session: "SessionDep", bookings: list
+    session: SessionDep, bookings: list
 ) -> list[AdminBookingRead]:
     """Batch-load related service/staff/user rows and produce AdminBookingRead with names."""
     if not bookings:
@@ -342,7 +342,7 @@ async def _enrich_bookings(
     return out
 
 
-async def _enrich_booking(session: "SessionDep", booking) -> AdminBookingRead:
+async def _enrich_booking(session: SessionDep, booking) -> AdminBookingRead:
     rows = await _enrich_bookings(session, [booking])
     return rows[0]
 
@@ -643,14 +643,41 @@ async def export_bookings_xlsx(
 # ---------------------------------------------------------------------------
 
 
-def _invite_url(token: str, settings: Settings) -> str:
-    if not settings.BOT_USERNAME:
-        return f"https://t.me/your_bot?start=invite_{token}"
-    return f"https://t.me/{settings.BOT_USERNAME}?start=invite_{token}"
+async def _resolve_bot_username(request: Request, settings: Settings) -> str:
+    """Return the bot's @username for invite URLs.
+
+    Order of preference:
+    1. Cached on app.state by the lifespan (set via bot.get_me()).
+    2. Settings.BOT_USERNAME from env.
+    3. Live call to bot.get_me() (and cache the result).
+    4. Final fallback "your_bot" so the URL is at least well-formed.
+    """
+    cached: str | None = getattr(request.app.state, "bot_username", None)
+    if cached:
+        return cached
+    if settings.BOT_USERNAME:
+        request.app.state.bot_username = settings.BOT_USERNAME
+        return settings.BOT_USERNAME
+    bot = getattr(request.app.state, "bot", None)
+    if bot is not None:
+        try:
+            me = await bot.get_me()
+            if me.username:
+                request.app.state.bot_username = me.username
+                return me.username
+        except Exception:
+            pass
+    return "your_bot"
+
+
+def _build_invite_url(token: str, bot_username: str) -> str:
+    return f"https://t.me/{bot_username}?start=invite_{token}"
 
 
 @router.get("/team", response_model=TeamResponse)
-async def admin_team(_admin: AdminUser, session: SessionDep) -> TeamResponse:
+async def admin_team(
+    _admin: AdminUser, session: SessionDep, request: Request
+) -> TeamResponse:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
     stmt = (
@@ -663,6 +690,7 @@ async def admin_team(_admin: AdminUser, session: SessionDep) -> TeamResponse:
     ]
     invites_raw = await AdminInvitesRepo(session).list_active(business.id)
     settings = get_settings()
+    bot_username = await _resolve_bot_username(request, settings)
     invites = [
         AdminInviteRead(
             id=i.id,
@@ -670,7 +698,7 @@ async def admin_team(_admin: AdminUser, session: SessionDep) -> TeamResponse:
             role=i.role,
             created_at=i.created_at,
             expires_at=i.expires_at,
-            url=_invite_url(i.token, settings),
+            url=_build_invite_url(i.token, bot_username),
         )
         for i in invites_raw
     ]
@@ -679,7 +707,7 @@ async def admin_team(_admin: AdminUser, session: SessionDep) -> TeamResponse:
 
 @router.post("/invites", response_model=AdminInviteRead, status_code=status.HTTP_201_CREATED)
 async def admin_create_invite(
-    body: AdminInviteCreate, admin: AdminUser, session: SessionDep
+    body: AdminInviteCreate, admin: AdminUser, session: SessionDep, request: Request
 ) -> AdminInviteRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
@@ -691,13 +719,14 @@ async def admin_create_invite(
     )
     await session.commit()
     settings = get_settings()
+    bot_username = await _resolve_bot_username(request, settings)
     return AdminInviteRead(
         id=invite.id,
         token=invite.token,
         role=invite.role,
         created_at=invite.created_at,
         expires_at=invite.expires_at,
-        url=_invite_url(invite.token, settings),
+        url=_build_invite_url(invite.token, bot_username),
     )
 
 

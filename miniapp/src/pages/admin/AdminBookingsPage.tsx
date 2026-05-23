@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
 import { BookingFilters, type FilterValues } from '@/features/admin-bookings/BookingFilters';
 import { useAdminBookings } from '@/entities/admin-booking/api';
+import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
 
 function todayDateString(): string {
   const d = new Date();
@@ -14,14 +15,6 @@ function todayDateString(): string {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function statusTone(status: string): 'sage' | 'clay' | 'sienna' | 'rose' | 'sand' {
-  if (status === 'pending' || status === 'confirmed') return 'sage';
-  if (status === 'completed') return 'sienna';
-  if (status === 'no_show') return 'rose';
-  if (status.startsWith('cancelled')) return 'clay';
-  return 'sand';
 }
 
 export function AdminBookingsPage() {
@@ -78,7 +71,7 @@ export function AdminBookingsPage() {
                     </div>
                   )}
                 </div>
-                <Badge tone={statusTone(b.status)}>{b.status}</Badge>
+                <Badge tone={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
               </div>
             </Card>
           </Link>

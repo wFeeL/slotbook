@@ -36,7 +36,7 @@ export function BranchStep() {
       style={{ animation: 'fade-up 320ms ease-out both' }}
     >
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 00</span>
+        <span className="text-sienna text-sm font-semibold">№ 01</span>
         <h1 className="text-2xl text-ink font-display mt-1">Филиал</h1>
         <p className="text-sienna text-base mt-2">Куда вам удобнее?</p>
       </header>

@@ -5,6 +5,7 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { Badge } from '@/shared/ui/Badge';
 import { useAdminDashboard } from '@/entities/admin-dashboard/api';
 import { useAdminBookings } from '@/entities/admin-booking/api';
+import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
 
 function todayDateString(): string {
   const d = new Date();
@@ -61,7 +62,7 @@ export function AdminDashboardPage() {
                       {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                     </div>
                   </div>
-                  <Badge tone={b.status === 'confirmed' ? 'sage' : 'sand'}>{b.status}</Badge>
+                  <Badge tone={bookingStatusTone(b.status)}>{bookingStatusLabel(b.status)}</Badge>
                 </div>
               </Card>
             </Link>

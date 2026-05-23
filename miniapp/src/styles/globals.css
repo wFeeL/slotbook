@@ -25,7 +25,7 @@
   --radius-card: 20px;
 
   /* Custom font sizes */
-  --text-display: 2.5rem;
+  --text-display: 3rem;
 }
 
 @layer base {
@@ -36,7 +36,7 @@
     background: var(--color-cream);
     color: var(--color-ink);
     font-family: var(--font-body);
-    font-size: 16px;
+    font-size: 17px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -49,6 +49,12 @@
     line-height: 1.2;
     letter-spacing: -0.01em;
   }
+  /* Caveat is a script font; it reads small at the sizes used by Tailwind's
+     text-xl/2xl. Bump the display headings so they remain legible on a
+     desktop Telegram WebView. */
+  h1.font-display { font-size: 2.25rem; }
+  h2.font-display { font-size: 1.75rem; }
+  h3.font-display { font-size: 1.5rem; }
   button {
     font-family: inherit;
   }
