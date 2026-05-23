@@ -13,6 +13,7 @@ const BookingFlowPage = lazy(() => import('./pages/BookingFlowPage').then((m) =>
 const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage').then((m) => ({ default: m.BookingSuccessPage })));
 const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage').then((m) => ({ default: m.MyBookingsPage })));
 const BookingDetailPage = lazy(() => import('./pages/BookingDetailPage').then((m) => ({ default: m.BookingDetailPage })));
+const RescheduleWizardPage = lazy(() => import('./pages/RescheduleWizardPage').then((m) => ({ default: m.RescheduleWizardPage })));
 
 // Admin chunks (separate so non-admin bundles stay small)
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout').then((m) => ({ default: m.AdminLayout })));
@@ -56,6 +57,7 @@ export function App() {
               <Route path="/book/success/:bookingId" element={<BookingSuccessPage />} />
               <Route path="/book/*" element={<BookingFlowPage />} />
               <Route path="/my-bookings" element={<MyBookingsPage />} />
+              <Route path="/my-bookings/:id/reschedule" element={<RescheduleWizardPage />} />
               <Route path="/my-bookings/:id" element={<BookingDetailPage />} />
 
               <Route

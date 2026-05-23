@@ -32,3 +32,15 @@ export function useCancelBooking() {
     },
   });
 }
+
+export function useRescheduleBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, startsAt }: { id: number; startsAt: string }) =>
+      api.bookings.reschedule(id, startsAt),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: bookingKeys.my() });
+      qc.invalidateQueries({ queryKey: slotKeys.all() });
+    },
+  });
+}

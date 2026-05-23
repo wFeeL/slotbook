@@ -8,7 +8,13 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
 import { Textarea } from '@/shared/ui/Textarea';
-import { useAdminCancelBooking, usePatchBooking } from '@/entities/admin-booking/api';
+import { Sheet } from '@/shared/ui/Sheet';
+import { Input } from '@/shared/ui/Input';
+import {
+  useAdminCancelBooking,
+  useAdminRescheduleBooking,
+  usePatchBooking,
+} from '@/entities/admin-booking/api';
 import { pushToast } from '@/shared/store/toast-store';
 import { showConfirm } from '@/shared/telegram/hooks';
 import { request } from '@/shared/api/client';
@@ -36,7 +42,12 @@ export function AdminBookingDetailPage() {
   const detail = useAdminBookingDetail(id);
   const patch = usePatchBooking();
   const cancel = useAdminCancelBooking();
+  const reschedule = useAdminRescheduleBooking();
   const [adminComment, setAdminComment] = useState('');
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('10:00');
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
 
   useEffect(() => {
     if (detail.data) setAdminComment(detail.data.admin_comment ?? '');
@@ -73,6 +84,43 @@ export function AdminBookingDetailPage() {
       navigate('/admin/bookings');
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось');
+    }
+  }
+
+  function openReschedule() {
+    setRescheduleError(null);
+    // Prefill with the current booking starts_at (local-time view).
+    const current = new Date(b.starts_at);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setRescheduleDate(
+      `${current.getFullYear()}-${pad(current.getMonth() + 1)}-${pad(current.getDate())}`,
+    );
+    setRescheduleTime(`${pad(current.getHours())}:${pad(current.getMinutes())}`);
+    setRescheduleOpen(true);
+  }
+
+  async function submitReschedule() {
+    setRescheduleError(null);
+    if (!rescheduleDate || !rescheduleTime) {
+      setRescheduleError('Укажите дату и время');
+      return;
+    }
+    // Build an ISO string with the admin's local UTC offset (copied from BookingForm).
+    const local = new Date(`${rescheduleDate}T${rescheduleTime}:00`);
+    const offsetMin = -local.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMin);
+    const offHH = String(Math.floor(abs / 60)).padStart(2, '0');
+    const offMM = String(abs % 60).padStart(2, '0');
+    const startsAt = `${rescheduleDate}T${rescheduleTime}:00${sign}${offHH}:${offMM}`;
+    try {
+      await reschedule.mutateAsync({ id, startsAt });
+      pushToast('success', 'Запись перенесена');
+      setRescheduleOpen(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось перенести';
+      setRescheduleError(msg);
+      pushToast('error', msg);
     }
   }
 
@@ -121,11 +169,52 @@ export function AdminBookingDetailPage() {
           <Button variant="secondary" onClick={() => setStatus('no_show')} disabled={patch.isPending}>
             Не пришёл
           </Button>
+          <Button variant="secondary" onClick={openReschedule} disabled={reschedule.isPending}>
+            Перенести
+          </Button>
           <Button variant="ghost" onClick={cancelBooking} disabled={cancel.isPending}>
             Отменить запись
           </Button>
         </div>
       )}
+
+      <Sheet
+        open={rescheduleOpen}
+        onClose={() => setRescheduleOpen(false)}
+        title="Перенести запись"
+      >
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2">
+            <Input
+              label="Дата"
+              type="date"
+              value={rescheduleDate}
+              onChange={(e) => setRescheduleDate(e.target.value)}
+            />
+            <Input
+              label="Время"
+              type="time"
+              value={rescheduleTime}
+              onChange={(e) => setRescheduleTime(e.target.value)}
+            />
+          </div>
+          {rescheduleError && (
+            <p className="text-clay text-sm">{rescheduleError}</p>
+          )}
+          <div className="flex gap-2 pt-2">
+            <Button onClick={submitReschedule} disabled={reschedule.isPending}>
+              {reschedule.isPending ? '...' : 'Перенести'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setRescheduleOpen(false)}
+              disabled={reschedule.isPending}
+            >
+              Отмена
+            </Button>
+          </div>
+        </div>
+      </Sheet>
     </div>
   );
 }

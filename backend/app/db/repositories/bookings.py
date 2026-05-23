@@ -33,11 +33,16 @@ class BookingsRepo:
         staff_id: int,
         start_utc: datetime,
         end_utc: datetime,
+        *,
+        exclude_id: int | None = None,
     ) -> list[Booking]:
         """SELECT ... FOR UPDATE on active bookings that overlap [start_utc, end_utc).
 
         Acquires row-level locks on any overlapping PENDING|CONFIRMED booking.
         Returns overlapping rows — if any are present, the slot is already taken.
+
+        Pass ``exclude_id`` to ignore a specific booking row (used by reschedule
+        so the booking does not collide with itself).
         """
         stmt = (
             select(Booking)
@@ -49,6 +54,8 @@ class BookingsRepo:
             )
             .with_for_update()
         )
+        if exclude_id is not None:
+            stmt = stmt.where(Booking.id != exclude_id)
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def get(self, booking_id: int) -> Booking | None:

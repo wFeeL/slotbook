@@ -73,6 +73,13 @@ export const api = {
     cancel(bookingId: number): Promise<BookingRead> {
       return request(`/api/v1/bookings/${bookingId}/cancel`, { method: 'POST' }, BookingReadSchema);
     },
+    reschedule(bookingId: number, startsAt: string): Promise<BookingRead> {
+      return request(
+        `/api/v1/bookings/${bookingId}/reschedule`,
+        { method: 'POST', body: JSON.stringify({ starts_at: startsAt }) },
+        BookingReadSchema,
+      );
+    },
   },
   admin: {
     dashboard(): Promise<DashboardResponse> {
@@ -242,6 +249,13 @@ export const api = {
         return request(
           `/api/v1/admin/bookings/${id}/cancel`,
           { method: 'POST' },
+          AdminBookingReadSchema,
+        );
+      },
+      reschedule(id: number, startsAt: string): Promise<AdminBookingRead> {
+        return request(
+          `/api/v1/admin/bookings/${id}/reschedule`,
+          { method: 'POST', body: JSON.stringify({ starts_at: startsAt }) },
           AdminBookingReadSchema,
         );
       },

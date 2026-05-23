@@ -79,14 +79,23 @@ export function BookingDetailPage() {
         </Card>
 
         {isActive && !startsInPast && (
-          <Button
-            variant="secondary"
-            className="w-full text-clay border-clay/30"
-            onClick={handleCancel}
-            disabled={cancel.isPending}
-          >
-            {cancel.isPending ? 'Отменяем...' : 'Отменить запись'}
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => navigate(`/my-bookings/${booking.id}/reschedule`)}
+            >
+              Перенести
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full text-clay border-clay/30"
+              onClick={handleCancel}
+              disabled={cancel.isPending}
+            >
+              {cancel.isPending ? 'Отменяем...' : 'Отменить запись'}
+            </Button>
+          </div>
         )}
 
         {!isActive && (

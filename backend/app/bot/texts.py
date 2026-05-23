@@ -93,6 +93,24 @@ def render(
             f"<b>Время:</b> {when}"
         ), None
 
+    if notification.notification_type == NotificationType.BOOKING_RESCHEDULED_CLIENT:
+        text = (
+            f"📅 <b>Запись перенесена</b>\n\n"
+            f"<b>Услуга:</b> {service_title}\n"
+            f"<b>Специалист:</b> {staff_name}\n"
+            f"<b>Новое время:</b> {when}"
+        )
+        return text, client_booking_created_keyboard(mini_app_url)
+
+    if notification.notification_type == NotificationType.BOOKING_RESCHEDULED_ADMIN:
+        text = (
+            f"📅 <b>Запись клиента перенесена</b>\n\n"
+            f"<b>Услуга:</b> {service_title}\n"
+            f"<b>Специалист:</b> {staff_name}\n"
+            f"<b>Новое время:</b> {when}"
+        )
+        return text, admin_new_booking_keyboard(booking.id, mini_app_url)
+
     if notification.notification_type in (
         NotificationType.REMINDER_24H,
         NotificationType.REMINDER_2H,

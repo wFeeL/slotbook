@@ -37,6 +37,8 @@ class NotificationType(StrEnum):
     REMINDER_2H = "reminder_2h"
     BOOKING_CANCELLED_CLIENT = "booking_cancelled_client"
     BOOKING_CANCELLED_ADMIN = "booking_cancelled_admin"
+    BOOKING_RESCHEDULED_CLIENT = "booking_rescheduled_client"
+    BOOKING_RESCHEDULED_ADMIN = "booking_rescheduled_admin"
 
 
 class NotificationStatus(StrEnum):

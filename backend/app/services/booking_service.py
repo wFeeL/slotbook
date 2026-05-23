@@ -365,3 +365,178 @@ class BookingService:
             is_admin=is_admin,
         )
         return booking
+
+    async def reschedule_booking(
+        self,
+        *,
+        business: Business,
+        actor_user_id: int,
+        actor_role: UserRole,
+        booking_id: int,
+        new_starts_at: datetime,
+        now_utc: datetime | None = None,
+    ) -> Booking:
+        now = now_utc or datetime.now(UTC)
+        if new_starts_at.tzinfo is None:
+            raise SlotInPast("new_starts_at must be timezone-aware")
+        new_starts_at_utc = new_starts_at.astimezone(UTC)
+
+        is_admin = actor_role in {UserRole.ADMIN, UserRole.SUPERADMIN}
+
+        booking = await BookingsRepo(self.session).get(booking_id)
+        if booking is None or booking.business_id != business.id:
+            raise NotFound("Booking not found")
+
+        if not is_admin and booking.client_id != actor_user_id:
+            raise Forbidden("You can only reschedule your own bookings")
+
+        if booking.status not in {BookingStatus.PENDING, BookingStatus.CONFIRMED}:
+            raise CannotCancelInCurrentStatus()
+
+        # Time-limit guard (clients only) — same as cancel
+        if not is_admin:
+            hours_left = (booking.starts_at - now).total_seconds() / 3600.0
+            if hours_left < business.min_cancellation_hours:
+                raise CancellationTooLate()
+
+        # Reject past slots
+        if new_starts_at_utc < now:
+            raise SlotInPast()
+
+        # Recompute ends_at using the existing service's duration
+        service = await ServicesRepo(self.session).get(booking.service_id)
+        if service is None:
+            raise NotFound("Service not found")
+        new_ends_at_utc = new_starts_at_utc + timedelta(minutes=service.duration_minutes)
+
+        # Lock overlapping rows (excluding self via id != booking.id)
+        overlapping = await BookingsRepo(self.session).find_overlapping_for_update(
+            booking.staff_id,
+            new_starts_at_utc,
+            new_ends_at_utc,
+            exclude_id=booking.id,
+        )
+        if overlapping:
+            raise SlotAlreadyTaken()
+
+        # Working-hours validation reuse — same pattern as create_booking
+        target_date = new_starts_at_utc.astimezone(ZoneInfo(business.timezone)).date()
+        day_start_utc, day_end_utc = local_date_bounds_utc(target_date, business.timezone)
+        existing = await BookingsRepo(self.session).list_active_for_staff_range(
+            booking.staff_id, day_start_utc, day_end_utc
+        )
+        # Exclude self from busy list
+        busy = [
+            BusyInterval(start=b.starts_at, end=b.ends_at)
+            for b in existing
+            if b.id != booking.id
+        ]
+
+        wh_rows = await WorkingHoursRepo(self.session).list_for_staff_weekday(
+            booking.staff_id, target_date.weekday()
+        )
+        working_intervals = [WorkingInterval(r.start_time, r.end_time) for r in wh_rows]
+
+        exc_rows = await ScheduleExceptionsRepo(self.session).list_for_staff_date(
+            booking.staff_id, target_date
+        )
+        exceptions = [
+            ExceptionEntry(type=e.type, start=e.start_time, end=e.end_time) for e in exc_rows
+        ]
+
+        candidate_slots = calculate_available_slots(
+            target_date=target_date,
+            business_timezone=business.timezone,
+            service_duration_minutes=service.duration_minutes,
+            slot_step_minutes=business.slot_step_minutes,
+            buffer_minutes=business.booking_buffer_minutes,
+            working_hours=working_intervals,
+            exceptions=exceptions,
+            bookings=busy,
+            now_utc=now,
+        )
+        if not any(s.starts_at_utc == new_starts_at_utc for s in candidate_slots):
+            raise SlotOutsideWorkingHours()
+
+        # All checks passed — update the row
+        old_starts_at = booking.starts_at
+        booking.starts_at = new_starts_at_utc
+        booking.ends_at = new_ends_at_utc
+        booking.rescheduled_at = now
+
+        # Delete pending reminders for this booking
+        notif_repo = NotificationsRepo(self.session)
+        await notif_repo.delete_pending_reminders_for_booking(booking.id)
+
+        # Enqueue fresh reminders (only if future)
+        reminder_24h_at = new_starts_at_utc - timedelta(hours=24)
+        reminder_2h_at = new_starts_at_utc - timedelta(hours=2)
+        if reminder_24h_at > now:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=booking.client_id,
+                    notification_type=NotificationType.REMINDER_24H,
+                    notification_status=NotificationStatus.PENDING,
+                    scheduled_at=reminder_24h_at,
+                )
+            )
+        if reminder_2h_at > now:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=booking.client_id,
+                    notification_type=NotificationType.REMINDER_2H,
+                    notification_status=NotificationStatus.PENDING,
+                    scheduled_at=reminder_2h_at,
+                )
+            )
+
+        # Immediate notifications (client + admins)
+        notif_repo.add(
+            Notification(
+                booking_id=booking.id,
+                user_id=booking.client_id,
+                notification_type=NotificationType.BOOKING_RESCHEDULED_CLIENT,
+                notification_status=NotificationStatus.PENDING,
+            )
+        )
+        admin_ids = await self._admin_user_ids(business.id)
+        for admin_id in admin_ids:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=admin_id,
+                    notification_type=NotificationType.BOOKING_RESCHEDULED_ADMIN,
+                    notification_status=NotificationStatus.PENDING,
+                )
+            )
+
+        AuditRepo(self.session).log(
+            actor_user_id=actor_user_id,
+            action="booking_rescheduled",
+            entity_type="booking",
+            entity_id=booking.id,
+            metadata={
+                "old_starts_at": old_starts_at.isoformat(),
+                "new_starts_at": new_starts_at_utc.isoformat(),
+                "actor_role": actor_role.value,
+            },
+        )
+
+        try:
+            await self.session.commit()
+        except IntegrityError as exc:
+            await self.session.rollback()
+            if self._is_slot_conflict(exc):
+                raise SlotAlreadyTaken() from exc
+            raise
+        await self.session.refresh(booking)
+
+        logger.info(
+            "booking.rescheduled",
+            booking_id=booking.id,
+            old=old_starts_at.isoformat(),
+            new=new_starts_at_utc.isoformat(),
+        )
+        return booking
