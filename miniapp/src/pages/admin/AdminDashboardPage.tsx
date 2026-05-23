@@ -79,6 +79,18 @@ export function AdminDashboardPage() {
         </Card>
       </Link>
 
+      <Link to="/admin/team">
+        <Card interactive surface="shell">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-ink font-semibold">Команда</div>
+              <div className="text-sienna text-xs">Участники и приглашения</div>
+            </div>
+            <span className="text-sienna text-xl">›</span>
+          </div>
+        </Card>
+      </Link>
+
       <Link to="/admin/settings">
         <Card interactive surface="shell">
           <div className="flex items-center justify-between gap-3">

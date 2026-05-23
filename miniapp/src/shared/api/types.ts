@@ -155,6 +155,33 @@ export type BusinessRead = z.infer<typeof BusinessReadSchema>;
 export const StatisticsPeriodSchema = z.enum(['7d', '30d', '90d', '365d']);
 export type StatisticsPeriodT = z.infer<typeof StatisticsPeriodSchema>;
 
+export const TeamMemberSchema = z.object({
+  id: z.number(),
+  telegram_id: z.number(),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  username: z.string().nullable(),
+  role: z.string(),
+  created_at: z.string(),
+});
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+export const AdminInviteReadSchema = z.object({
+  id: z.number(),
+  token: z.string(),
+  role: z.string(),
+  created_at: z.string(),
+  expires_at: z.string(),
+  url: z.string(),
+});
+export type AdminInviteRead = z.infer<typeof AdminInviteReadSchema>;
+
+export const TeamResponseSchema = z.object({
+  members: z.array(TeamMemberSchema),
+  invites: z.array(AdminInviteReadSchema),
+});
+export type TeamResponse = z.infer<typeof TeamResponseSchema>;
+
 export const StatisticsResponseSchema = z.object({
   period: StatisticsPeriodSchema,
   revenue: z.string(),

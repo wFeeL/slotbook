@@ -2,6 +2,8 @@ import { request } from './client';
 import {
   AdminBookingReadSchema,
   type AdminBookingRead,
+  AdminInviteReadSchema,
+  type AdminInviteRead,
   BookingReadSchema,
   type BookingRead,
   type BusinessRead,
@@ -21,6 +23,8 @@ import {
   StatisticsResponseSchema,
   type StatisticsResponse,
   type StatisticsPeriodT,
+  type TeamResponse,
+  TeamResponseSchema,
   type TelegramAuthResponse,
   TelegramAuthResponseSchema,
   WorkingHoursEntrySchema,
@@ -307,6 +311,26 @@ export const api = {
           `/api/v1/admin/bookings/${id}/reschedule`,
           { method: 'POST', body: JSON.stringify({ starts_at: startsAt }) },
           AdminBookingReadSchema,
+        );
+      },
+    },
+    team: {
+      get(): Promise<TeamResponse> {
+        return request('/api/v1/admin/team', { method: 'GET' }, TeamResponseSchema);
+      },
+      createInvite(body: {
+        role: 'admin' | 'staff';
+        ttl_hours: 24 | 168 | 720;
+      }): Promise<AdminInviteRead> {
+        return request(
+          '/api/v1/admin/invites',
+          { method: 'POST', body: JSON.stringify(body) },
+          AdminInviteReadSchema,
+        );
+      },
+      revokeInvite(id: number): Promise<void> {
+        return request(`/api/v1/admin/invites/${id}`, { method: 'DELETE' }, z.unknown()).then(
+          () => undefined,
         );
       },
     },
