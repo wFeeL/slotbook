@@ -49,7 +49,7 @@ services:
     build:
       context: ./miniapp
       args:
-        VITE_API_BASE_URL: /api
+        VITE_API_BASE_URL: ""
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
