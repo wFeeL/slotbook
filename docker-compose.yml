@@ -2,18 +2,24 @@ services:
   api:
     build: ./backend
     env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://booking:booking@postgres:5432/booking
+      TEST_DATABASE_URL: postgresql+asyncpg://booking:booking@postgres:5432/booking_test
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
     volumes:
       - ./backend:/app
+      - /app/.venv
 
   bot:
     build: ./backend
     env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://booking:booking@postgres:5432/booking
     depends_on:
       postgres:
         condition: service_healthy
@@ -24,10 +30,13 @@ services:
       - "8001:8001"
     volumes:
       - ./backend:/app
+      - /app/.venv
 
   worker:
     build: ./backend
     env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://booking:booking@postgres:5432/booking
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,6 +44,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./backend:/app
+      - /app/.venv
 
   postgres:
     image: postgres:16
