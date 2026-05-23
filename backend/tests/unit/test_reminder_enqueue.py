@@ -7,18 +7,16 @@ from sqlalchemy import select
 
 from app.db.enums import (
     BookingSource,
-    BookingStatus,
     NotificationStatus,
     NotificationType,
 )
 from app.db.models.business import Business
 from app.db.models.notification import Notification
+from app.db.models.schedule import WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
 from app.db.models.user import User
-from app.db.models.schedule import WorkingHours
 from app.services.booking_service import BookingService
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -59,7 +57,7 @@ async def seed(db_session):
 
     await StaffRepo(db_session).replace_services(staff.id, [service.id])
 
-    # Add working hours for all days 09:00–21:00
+    # Add working hours for all days 09:00-21:00
     from datetime import time as time_t
 
     for wd in range(7):

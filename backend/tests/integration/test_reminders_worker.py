@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, time as time_t, timedelta
+from datetime import UTC, datetime, timedelta
+from datetime import time as time_t
 from unittest.mock import AsyncMock
 
 import pytest
@@ -84,7 +85,7 @@ async def world(db_session):
 
 
 async def test_tick_sends_due_reminder(db_session_factory, world):
-    biz, client, service, staff, booking = world
+    _biz, client, _service, _staff, booking = world
     # Insert a due reminder (scheduled_at in the past)
     async with db_session_factory() as s:
         n = Notification(
@@ -110,7 +111,7 @@ async def test_tick_sends_due_reminder(db_session_factory, world):
 
 
 async def test_tick_skips_future_reminder(db_session_factory, world):
-    biz, client, service, staff, booking = world
+    _biz, client, _service, _staff, booking = world
     async with db_session_factory() as s:
         n = Notification(
             booking_id=booking.id,

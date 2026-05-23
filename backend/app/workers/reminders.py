@@ -30,7 +30,7 @@ async def tick(session_factory: SessionFactory, bot: Bot, *, limit: int = 200) -
             try:
                 await NotificationService(session, bot).dispatch_pending_for_booking(bid)
                 sent += 1
-            except Exception:  # noqa: BLE001
+            except Exception:
                 log.exception("worker.dispatch_failed", booking_id=bid)
         # Notifications service commits internally; no further commit needed here.
     return sent

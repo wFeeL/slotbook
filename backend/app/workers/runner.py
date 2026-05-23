@@ -31,7 +31,7 @@ async def run() -> None:
             sent = await tick(session_factory, bot)
             if sent:
                 log.info("worker.batch_done", sent=sent)
-        except Exception:  # noqa: BLE001
+        except Exception:
             log.exception("worker.tick_failed")
 
     scheduler.add_job(
