@@ -58,12 +58,11 @@ async def _setup(db_session, business, *, link_staff_to_user: bool):
 
 
 def _aligned_starts(business, *, hours_ahead: int) -> datetime:
-    """Pick a slot that matches business.slot_step_minutes and is in the future."""
-    step = business.slot_step_minutes
-    now = datetime.now(UTC).replace(second=0, microsecond=0)
-    minute = (now.minute // step) * step
-    now = now.replace(minute=minute) + timedelta(hours=hours_ahead)
-    return now
+    """Pick a slot at top of hour (always aligned to any step) that is in the future."""
+    return (
+        datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
+        + timedelta(hours=hours_ahead + 1)
+    )
 
 
 @pytest.mark.asyncio
