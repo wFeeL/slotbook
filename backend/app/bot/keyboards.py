@@ -63,3 +63,17 @@ def my_bookings_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def staff_cabinet_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
+    """Single WebApp button opening /me in the Mini App."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Открыть кабинет",
+                    web_app=WebAppInfo(url=f"{mini_app_url.rstrip('/')}/me"),
+                )
+            ]
+        ]
+    )

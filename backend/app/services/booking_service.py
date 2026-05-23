@@ -85,6 +85,20 @@ class BookingService:
         stmt = select(User.id).where(User.role.in_([UserRole.ADMIN, UserRole.SUPERADMIN]))
         return list((await self.session.execute(stmt)).scalars().all())
 
+    async def _staff_user_id_to_notify(
+        self, staff_id: int, client_id: int
+    ) -> int | None:
+        """Return the linked user_id to notify, or None if not applicable.
+
+        Skips when: staff is unlinked, archived, or is the client themselves.
+        """
+        staff = await StaffRepo(self.session).get(staff_id)
+        if staff is None or staff.user_id is None or not staff.is_active:
+            return None
+        if staff.user_id == client_id:
+            return None
+        return staff.user_id
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -226,6 +240,16 @@ class BookingService:
                     notification_status=NotificationStatus.PENDING,
                 )
             )
+        staff_user_id = await self._staff_user_id_to_notify(staff_id, client_id)
+        if staff_user_id is not None:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=staff_user_id,
+                    notification_type=NotificationType.BOOKING_CREATED_STAFF,
+                    notification_status=NotificationStatus.PENDING,
+                )
+            )
 
         # Enqueue reminder notifications for client (only if T-24h / T-2h is in the future)
         reminder_24h_at = starts_at_utc - timedelta(hours=24)
@@ -340,6 +364,18 @@ class BookingService:
                     booking_id=booking.id,
                     user_id=admin_id,
                     notification_type=NotificationType.BOOKING_CANCELLED_ADMIN,
+                    notification_status=NotificationStatus.PENDING,
+                )
+            )
+        staff_user_id = await self._staff_user_id_to_notify(
+            booking.staff_id, booking.client_id
+        )
+        if staff_user_id is not None:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=staff_user_id,
+                    notification_type=NotificationType.BOOKING_CANCELLED_STAFF,
                     notification_status=NotificationStatus.PENDING,
                 )
             )
@@ -514,6 +550,18 @@ class BookingService:
                     booking_id=booking.id,
                     user_id=admin_id,
                     notification_type=NotificationType.BOOKING_RESCHEDULED_ADMIN,
+                    notification_status=NotificationStatus.PENDING,
+                )
+            )
+        staff_user_id = await self._staff_user_id_to_notify(
+            booking.staff_id, booking.client_id
+        )
+        if staff_user_id is not None:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=staff_user_id,
+                    notification_type=NotificationType.BOOKING_RESCHEDULED_STAFF,
                     notification_status=NotificationStatus.PENDING,
                 )
             )

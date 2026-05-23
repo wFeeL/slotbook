@@ -68,6 +68,7 @@ class NotificationService:
             return
 
         settings = get_settings()
+        client_user = await UsersRepo(self.session).get_by_id(booking.client_id)
         for n in notifications:
             recipient = await UsersRepo(self.session).get_by_id(n.user_id)
             if recipient is None:
@@ -82,6 +83,7 @@ class NotificationService:
                     staff=staff,
                     business=business,
                     mini_app_url=settings.MINI_APP_URL,
+                    client=client_user,
                 )
                 await self.bot.send_message(
                     chat_id=recipient.telegram_id,

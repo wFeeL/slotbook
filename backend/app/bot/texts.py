@@ -9,6 +9,7 @@ from aiogram.types import InlineKeyboardMarkup
 from app.bot.keyboards import (
     admin_new_booking_keyboard,
     client_booking_created_keyboard,
+    staff_cabinet_keyboard,
 )
 from app.db.enums import NotificationType
 from app.db.models.booking import Booking
@@ -16,6 +17,7 @@ from app.db.models.business import Business
 from app.db.models.notification import Notification
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
+from app.db.models.user import User
 
 
 def _fmt_dt(dt: datetime, tz_name: str) -> str:
@@ -51,6 +53,7 @@ def render(
     staff: StaffMember,
     business: Business,
     mini_app_url: str,
+    client: User | None = None,
 ) -> tuple[str, InlineKeyboardMarkup | None]:
     """Render notification text + keyboard. Pure function."""
     when = _fmt_dt(booking.starts_at, business.timezone)
@@ -126,5 +129,37 @@ def render(
             f"<b>Время:</b> {when}"
         )
         return text, client_booking_created_keyboard(mini_app_url)
+
+    client_name = _esc(client.first_name) if client and client.first_name else "Клиент"
+
+    if notification.notification_type == NotificationType.BOOKING_CREATED_STAFF:
+        text = (
+            f"🗓 <b>Новая запись к вам</b>\n\n"
+            f"<b>Услуга:</b> {service_title}\n"
+            f"<b>Клиент:</b> {client_name}\n"
+            f"<b>Время:</b> {when}\n"
+            f"<b>Длительность:</b> {service.duration_minutes} мин"
+        )
+        if comment:
+            text += f"\n<b>Комментарий:</b> {_esc(comment)}"
+        return text, staff_cabinet_keyboard(mini_app_url)
+
+    if notification.notification_type == NotificationType.BOOKING_CANCELLED_STAFF:
+        text = (
+            f"❌ <b>Запись отменена</b>\n\n"
+            f"<b>Услуга:</b> {service_title}\n"
+            f"<b>Клиент:</b> {client_name}\n"
+            f"<b>Время:</b> {when}"
+        )
+        return text, staff_cabinet_keyboard(mini_app_url)
+
+    if notification.notification_type == NotificationType.BOOKING_RESCHEDULED_STAFF:
+        text = (
+            f"📅 <b>Запись перенесена</b>\n\n"
+            f"<b>Услуга:</b> {service_title}\n"
+            f"<b>Клиент:</b> {client_name}\n"
+            f"<b>Новое время:</b> {when}"
+        )
+        return text, staff_cabinet_keyboard(mini_app_url)
 
     raise ValueError(f"Unknown notification type: {notification.notification_type}")
