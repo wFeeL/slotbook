@@ -41,7 +41,15 @@ class StaffMember(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    __table_args__ = (Index("ix_staff_business_active", "business_id", "is_active"),)
+    __table_args__ = (
+        Index("ix_staff_business_active", "business_id", "is_active"),
+        Index(
+            "ux_staff_user_active",
+            "user_id",
+            unique=True,
+            postgresql_where="user_id IS NOT NULL AND is_active = true",
+        ),
+    )
 
 
 class StaffService(Base):
