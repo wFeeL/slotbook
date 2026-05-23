@@ -22,7 +22,6 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.enums import BookingSource, UserRole
 from app.db.models.booking import Booking
-from app.db.models.business import Business
 from app.db.models.schedule import WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember, StaffService
