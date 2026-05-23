@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -139,7 +140,7 @@ async def validation_error_handler(_request: Request, exc: RequestValidationErro
         content=_error_payload(
             "validation_error",
             "Request validation failed",
-            extra={"errors": exc.errors()},
+            extra={"errors": jsonable_encoder(exc.errors())},
         ),
     )
 

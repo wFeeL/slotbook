@@ -36,3 +36,11 @@ class BusinessesRepo:
         self.session.add(business)
         await self.session.flush()
         return business
+
+    async def update(self, business: Business, **fields: object) -> Business:
+        for key, value in fields.items():
+            if value is not None:
+                setattr(business, key, value)
+        await self.session.flush()
+        await self.session.refresh(business)
+        return business

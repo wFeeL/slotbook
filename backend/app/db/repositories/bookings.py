@@ -123,6 +123,32 @@ class BookingsRepo:
         stmt = stmt.order_by(Booking.starts_at.asc()).limit(limit).offset(offset)
         return list((await self.session.execute(stmt)).scalars().all())
 
+    async def list_admin_for_local_week(
+        self,
+        business_id: int,
+        week_start_utc: datetime,
+        week_end_utc: datetime,
+        *,
+        staff_id: int | None = None,
+        service_id: int | None = None,
+        status: BookingStatus | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Booking]:
+        stmt = select(Booking).where(
+            Booking.business_id == business_id,
+            Booking.starts_at >= week_start_utc,
+            Booking.starts_at < week_end_utc,
+        )
+        if staff_id is not None:
+            stmt = stmt.where(Booking.staff_id == staff_id)
+        if service_id is not None:
+            stmt = stmt.where(Booking.service_id == service_id)
+        if status is not None:
+            stmt = stmt.where(Booking.status == status)
+        stmt = stmt.order_by(Booking.starts_at.asc()).limit(limit).offset(offset)
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def list_for_client_upcoming(
         self, client_id: int, *, now_utc: datetime, limit: int = 5
     ) -> list[Booking]:

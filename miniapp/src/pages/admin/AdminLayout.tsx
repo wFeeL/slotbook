@@ -13,7 +13,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/admin', label: 'Главная', icon: '✦', end: true },
-  { to: '/admin/bookings', label: 'Записи', icon: '◷' },
+  { to: '/admin/calendar', label: 'Календарь', icon: '▦' },
+  { to: '/admin/bookings', label: 'Записи', icon: '≡' },
   { to: '/admin/services', label: 'Услуги', icon: '✤' },
   { to: '/admin/staff', label: 'Сотрудники', icon: '☺' },
 ];
