@@ -66,6 +66,18 @@ export function AdminDashboardPage() {
           ))}
         </div>
       </section>
+
+      <Link to="/admin/settings">
+        <Card interactive surface="shell">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-ink font-semibold">Настройки бизнеса</div>
+              <div className="text-sienna text-xs">Имя, часовой пояс, шаг слотов, буфер</div>
+            </div>
+            <span className="text-sienna text-xl">›</span>
+          </div>
+        </Card>
+      </Link>
     </div>
   );
 }
