@@ -16,5 +16,6 @@ COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 COPY seed.py ./seed.py
 COPY main_bot.py ./main_bot.py
+COPY main_worker.py ./main_worker.py
 
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

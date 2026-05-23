@@ -124,6 +124,17 @@ async def db_session(db_engine) -> AsyncIterator[AsyncSession]:  # type: ignore[
             await conn.execute(text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
 
 
+@pytest_asyncio.fixture
+async def db_session_factory(db_engine):  # type: ignore[no-untyped-def]
+    """Returns a callable that yields new AsyncSession objects bound to the test engine.
+
+    Useful for tests that need to simulate distinct concurrent sessions (e.g. the
+    worker creates its own session per tick).
+    """
+    factory = async_sessionmaker(db_engine, expire_on_commit=False, class_=AsyncSession)
+    return factory
+
+
 @pytest.fixture
 def settings() -> Settings:
     return get_settings()

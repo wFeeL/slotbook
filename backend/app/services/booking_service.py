@@ -214,6 +214,30 @@ class BookingService:
                 )
             )
 
+        # Enqueue reminder notifications for client (only if T-24h / T-2h is in the future)
+        reminder_24h_at = starts_at_utc - timedelta(hours=24)
+        reminder_2h_at = starts_at_utc - timedelta(hours=2)
+        if reminder_24h_at > now:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=client_id,
+                    notification_type=NotificationType.REMINDER_24H,
+                    notification_status=NotificationStatus.PENDING,
+                    scheduled_at=reminder_24h_at,
+                )
+            )
+        if reminder_2h_at > now:
+            notif_repo.add(
+                Notification(
+                    booking_id=booking.id,
+                    user_id=client_id,
+                    notification_type=NotificationType.REMINDER_2H,
+                    notification_status=NotificationStatus.PENDING,
+                    scheduled_at=reminder_2h_at,
+                )
+            )
+
         # 11. Insert audit log
         AuditRepo(self.session).log(
             actor_user_id=actor_user_id,
@@ -306,6 +330,9 @@ class BookingService:
                     notification_status=NotificationStatus.PENDING,
                 )
             )
+
+        # Purge still-pending reminders so we don't send them after cancellation
+        await notif_repo.delete_pending_reminders_for_booking(booking.id)
 
         # 8. Audit log
         metadata: dict[str, Any] = {
