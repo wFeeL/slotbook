@@ -7,7 +7,11 @@ import { useAdminDashboard } from '@/entities/admin-dashboard/api';
 import { useAdminBookings } from '@/entities/admin-booking/api';
 
 function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function Counter({ label, value, loading }: { label: string; value?: number; loading: boolean }) {
