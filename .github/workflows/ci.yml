@@ -63,3 +63,42 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx vitest run
       - run: npm run build
+
+  smoke:
+    needs: [backend, miniapp]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare .env.production
+        run: |
+          cp .env.production.example .env.production
+          sed -i 's|^DOMAIN=$|DOMAIN=:80|' .env.production
+          sed -i 's|^POSTGRES_PASSWORD=$|POSTGRES_PASSWORD=ci-pass|' .env.production
+          sed -i 's|^JWT_SECRET=$|JWT_SECRET=ci-jwt-secret-32-chars-minimum-len|' .env.production
+          sed -i 's|^BOT_TOKEN=$|BOT_TOKEN=ci-bot-token|' .env.production
+          sed -i 's|^BOT_MODE=webhook$|BOT_MODE=polling|' .env.production
+          sed -i 's|^BOT_WEBHOOK_SECRET_TOKEN=$|BOT_WEBHOOK_SECRET_TOKEN=ci-secret|' .env.production
+          sed -i 's|^BOT_WEBHOOK_URL=.*$|BOT_WEBHOOK_URL=|' .env.production
+          sed -i 's|^MINI_APP_URL=.*$|MINI_APP_URL=http://localhost|' .env.production
+      - name: Boot stack
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+      - name: Wait for api healthy
+        run: |
+          for i in $(seq 1 60); do
+            cid=$(docker compose -f docker-compose.prod.yml --env-file .env.production ps -q api)
+            if [ -z "$cid" ]; then sleep 2; continue; fi
+            status=$(docker inspect --format='{{.State.Health.Status}}' "$cid" 2>/dev/null || echo unknown)
+            echo "api health: $status"
+            if [ "$status" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "API never became healthy. Logs:"
+          docker compose -f docker-compose.prod.yml --env-file .env.production logs
+          exit 1
+      - name: Smoke /health and root
+        run: |
+          curl -fsSL http://localhost/health
+          curl -fsSL -o /dev/null -w "%{http_code}\n" http://localhost/
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production down -v

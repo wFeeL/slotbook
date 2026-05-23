@@ -14,6 +14,8 @@ import {
   SlotsResponseSchema,
   type StaffRead,
   StaffReadSchema,
+  type StaffReadWithServices,
+  StaffReadWithServicesSchema,
   type TelegramAuthResponse,
   TelegramAuthResponseSchema,
   WorkingHoursEntrySchema,
@@ -114,6 +116,14 @@ export const api = {
       },
     },
     staff: {
+      list(includeArchived: boolean = true): Promise<StaffReadWithServices[]> {
+        const qs = new URLSearchParams({ include_archived: String(includeArchived) });
+        return request(
+          `/api/v1/admin/staff?${qs}`,
+          { method: 'GET' },
+          z.array(StaffReadWithServicesSchema),
+        );
+      },
       create(body: { name: string; description?: string | null }): Promise<StaffRead> {
         return request(
           '/api/v1/admin/staff',

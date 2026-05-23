@@ -60,16 +60,18 @@ class BookingService:
 
     @staticmethod
     def _is_slot_conflict(exc: IntegrityError) -> bool:
-        """Return True if the IntegrityError is a unique violation on the booking slot index."""
+        """Return True if the IntegrityError is a slot-conflict on the booking unique index or the EXCLUDE constraint."""
         exc_str = str(exc)
-        if "bookings_active_by_staff" in exc_str:
+        if "bookings_active_by_staff" in exc_str or "bookings_no_overlap" in exc_str:
             return True
         if exc.orig is not None:
-            if "bookings_active_by_staff" in str(exc.orig):
+            if "bookings_active_by_staff" in str(exc.orig) or "bookings_no_overlap" in str(
+                exc.orig
+            ):
                 return True
-            # asyncpg UniqueViolationError exposes constraint_name
+            # asyncpg UniqueViolationError / ExclusionViolationError exposes constraint_name
             constraint_name = getattr(exc.orig, "constraint_name", None)
-            if constraint_name == "bookings_active_by_staff":
+            if constraint_name in ("bookings_active_by_staff", "bookings_no_overlap"):
                 return True
         return False
 

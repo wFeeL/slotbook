@@ -23,3 +23,13 @@ class StaffUpdate(BaseModel):
 
 class StaffServicesUpdate(BaseModel):
     service_ids: list[int]
+
+
+class StaffReadWithServices(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None
+    is_active: bool
+    service_ids: list[int]

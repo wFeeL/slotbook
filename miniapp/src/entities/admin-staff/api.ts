@@ -3,20 +3,9 @@ import { api } from '@/shared/api/endpoints';
 import { adminStaffKeys } from './model';
 
 export function useAdminStaff() {
-  // Aggregate staff across all services. Backend doesn't have an "all staff"
-  // endpoint, but the public endpoint accepts service_id. We fetch services
-  // and union staff per service.
   return useQuery({
     queryKey: adminStaffKeys.list(),
-    queryFn: async () => {
-      const services = await api.services.list();
-      const seen = new Map<number, Awaited<ReturnType<typeof api.staff.listForService>>[number]>();
-      for (const s of services) {
-        const list = await api.staff.listForService(s.id);
-        for (const st of list) seen.set(st.id, st);
-      }
-      return Array.from(seen.values());
-    },
+    queryFn: () => api.admin.staff.list(true),
     staleTime: 30 * 1000,
   });
 }
@@ -71,6 +60,9 @@ export function useReplaceStaffServices() {
     mutationFn: ({ id, serviceIds }: { id: number; serviceIds: number[] }) =>
       api.admin.staff.replaceServices(id, serviceIds),
     onSuccess: (_data, vars) => {
+      // List query carries the source-of-truth service_ids — invalidate it so
+      // editors re-hydrate from the new server state.
+      qc.invalidateQueries({ queryKey: adminStaffKeys.list() });
       qc.invalidateQueries({ queryKey: adminStaffKeys.detail(vars.id) });
       qc.invalidateQueries({ queryKey: ['staff'] });
     },
