@@ -64,5 +64,6 @@ describe('RequireAdmin', () => {
     expect(screen.queryByText('inside')).not.toBeInTheDocument();
     expect(screen.getByText('home')).toBeInTheDocument();
     expect(useToastStore.getState().toasts).toHaveLength(1);
+    expect(useToastStore.getState().toasts[0].tone).toBe('error');
   });
 });
