@@ -1,3 +1,12 @@
+"""SlotBook seed script.
+
+Usage:
+  python seed.py                     # ensure the singleton Business exists
+  python seed.py --demo              # also insert demo services/staff/booking (idempotent)
+  python seed.py --demo --clean      # purge the demo Business and reseed from scratch
+  python seed.py --clean --force     # required if APP_ENV=prod
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -6,13 +15,14 @@ from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 
 import structlog
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.enums import BookingSource, UserRole
 from app.db.models.booking import Booking
-from app.db.models.business import Business  # noqa: F401
+from app.db.models.business import Business
 from app.db.models.schedule import WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember, StaffService
@@ -23,12 +33,31 @@ from app.db.session import get_engine
 log = structlog.get_logger()
 
 
-async def seed(demo: bool) -> None:
+async def _purge(session) -> None:
+    """Delete all Bookings / Services / Staff / WorkingHours for the singleton business."""
+    biz = await BusinessesRepo(session).get_singleton()
+    if biz is None:
+        log.info("seed.clean_noop")
+        return
+    # FK cascades will handle most of these, but delete explicitly for clarity.
+    await session.execute(delete(Booking).where(Booking.business_id == biz.id))
+    await session.execute(delete(StaffService))  # global join table
+    await session.execute(delete(WorkingHours))  # global table; SP1 says one business
+    await session.execute(delete(StaffMember).where(StaffMember.business_id == biz.id))
+    await session.execute(delete(Service).where(Service.business_id == biz.id))
+    await session.commit()
+    log.info("seed.purged", business_id=biz.id)
+
+
+async def seed(demo: bool, clean: bool) -> None:
     settings = get_settings()
     configure_logging(settings)
     sessionmaker = async_sessionmaker(get_engine(), expire_on_commit=False)
 
     async with sessionmaker() as session:
+        if clean:
+            await _purge(session)
+
         biz = await BusinessesRepo(session).ensure_from_settings(
             name=settings.BUSINESS_NAME,
             timezone=settings.BUSINESS_TIMEZONE,
@@ -42,7 +71,6 @@ async def seed(demo: bool) -> None:
         if not demo:
             return
 
-        # Idempotent demo seed
         from sqlalchemy import select
 
         existing_demo_service = (
@@ -110,13 +138,23 @@ async def seed(demo: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SlotBook seed script")
+    parser.add_argument("--demo", action="store_true", help="Also seed demo data (idempotent)")
     parser.add_argument(
-        "--demo",
+        "--clean",
         action="store_true",
-        help="Also seed demo services, staff, and a booking",
+        help="Purge demo data before seeding. Refuses on APP_ENV=prod unless --force.",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Required to use --clean when APP_ENV=prod.",
     )
     args = parser.parse_args()
-    asyncio.run(seed(args.demo))
+
+    if args.clean and get_settings().APP_ENV == "prod" and not args.force:
+        raise SystemExit("Refusing to --clean in production without --force.")
+
+    asyncio.run(seed(demo=args.demo, clean=args.clean))
 
 
 if __name__ == "__main__":
