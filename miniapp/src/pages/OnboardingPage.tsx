@@ -33,7 +33,7 @@ export function OnboardingPage() {
         </header>
 
         <div className="flex flex-col gap-4" style={{ animation: 'fade-up 320ms 80ms ease-out both' }}>
-          <Button size="lg" onClick={() => navigate('/book/service')}>
+          <Button size="lg" onClick={() => navigate('/book/branch')}>
             <span className="flex flex-col items-start gap-0.5 text-left">
               <span>Записаться</span>
               <span className="text-sm font-normal opacity-80">новая встреча</span>

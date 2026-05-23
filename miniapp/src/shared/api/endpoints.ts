@@ -6,6 +6,8 @@ import {
   type AdminInviteRead,
   BookingReadSchema,
   type BookingRead,
+  type BranchRead,
+  BranchReadSchema,
   type BusinessRead,
   BusinessReadSchema,
   DashboardResponseSchema,
@@ -42,14 +44,23 @@ export const api = {
       );
     },
   },
+  branches: {
+    list(): Promise<BranchRead[]> {
+      return request('/api/v1/branches', { method: 'GET' }, z.array(BranchReadSchema));
+    },
+  },
   services: {
-    list(): Promise<ServiceRead[]> {
-      return request('/api/v1/services', { method: 'GET' }, z.array(ServiceReadSchema));
+    list(opts: { branchId?: number } = {}): Promise<ServiceRead[]> {
+      const qs = new URLSearchParams();
+      if (opts.branchId !== undefined) qs.set('branch_id', String(opts.branchId));
+      const suffix = qs.toString() ? `?${qs}` : '';
+      return request(`/api/v1/services${suffix}`, { method: 'GET' }, z.array(ServiceReadSchema));
     },
   },
   staff: {
-    listForService(serviceId: number): Promise<StaffRead[]> {
+    listForService(serviceId: number, opts: { branchId?: number } = {}): Promise<StaffRead[]> {
       const params = new URLSearchParams({ service_id: String(serviceId) });
+      if (opts.branchId !== undefined) params.set('branch_id', String(opts.branchId));
       return request(`/api/v1/staff?${params}`, { method: 'GET' }, z.array(StaffReadSchema));
     },
   },
@@ -116,6 +127,46 @@ export const api = {
       if (params.staff_id) q.set('staff_id', String(params.staff_id));
       const qs = q.toString();
       return `/api/v1/admin/exports/bookings.xlsx${qs ? `?${qs}` : ''}`;
+    },
+    branches: {
+      list(): Promise<BranchRead[]> {
+        return request('/api/v1/admin/branches', { method: 'GET' }, z.array(BranchReadSchema));
+      },
+      create(body: {
+        name: string;
+        address?: string | null;
+        timezone: string;
+        sort_order?: number;
+      }): Promise<BranchRead> {
+        return request(
+          '/api/v1/admin/branches',
+          { method: 'POST', body: JSON.stringify(body) },
+          BranchReadSchema,
+        );
+      },
+      update(
+        id: number,
+        patch: Partial<{
+          name: string;
+          address: string | null;
+          timezone: string;
+          is_active: boolean;
+          sort_order: number;
+        }>,
+      ): Promise<BranchRead> {
+        return request(
+          `/api/v1/admin/branches/${id}`,
+          { method: 'PATCH', body: JSON.stringify(patch) },
+          BranchReadSchema,
+        );
+      },
+      archive(id: number): Promise<void> {
+        return request(
+          `/api/v1/admin/branches/${id}`,
+          { method: 'DELETE' },
+          z.unknown(),
+        ).then(() => undefined);
+      },
     },
     business: {
       get(): Promise<BusinessRead> {

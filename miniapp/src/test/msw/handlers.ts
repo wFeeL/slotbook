@@ -16,10 +16,23 @@ export const handlers = [
       },
     });
   }),
+  http.get('http://localhost:8000/api/v1/branches', () => {
+    return HttpResponse.json([
+      {
+        id: 1,
+        name: 'Главный филиал',
+        address: null,
+        timezone: 'Europe/Moscow',
+        is_active: true,
+        sort_order: 0,
+      },
+    ]);
+  }),
   http.get('http://localhost:8000/api/v1/services', () => {
     return HttpResponse.json([
       {
         id: 1,
+        branch_id: 1,
         title: 'Массаж спины',
         description: null,
         duration_minutes: 60,

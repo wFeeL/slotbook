@@ -8,10 +8,11 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 export function ServiceStep() {
   const navigate = useNavigate();
   const setService = useBookingFlowStore((s) => s.setService);
+  const branchId = useBookingFlowStore((s) => s.branchId);
   const haptic = useHaptic();
-  const services = useServices();
+  const services = useServices({ branchId });
 
-  useBackButton(() => navigate('/'));
+  useBackButton(() => navigate('/book/branch'));
 
   function handleSelect(serviceId: number) {
     haptic.light();

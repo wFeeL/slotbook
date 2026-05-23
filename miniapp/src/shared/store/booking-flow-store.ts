@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
 interface BookingFlowState {
+  branchId: number | null;
   serviceId: number | null;
   staffId: number | null;
   date: string | null; // YYYY-MM-DD (local business date)
   startsAt: string | null; // ISO 8601 UTC
   comment: string;
+  setBranchId(id: number | null): void;
   setService(id: number): void;
   setStaff(id: number): void;
   setDate(date: string): void;
@@ -15,6 +17,7 @@ interface BookingFlowState {
 }
 
 const initialState = {
+  branchId: null,
   serviceId: null,
   staffId: null,
   date: null,
@@ -24,9 +27,24 @@ const initialState = {
 
 export const useBookingFlowStore = create<BookingFlowState>((set) => ({
   ...initialState,
+  setBranchId(id) {
+    // Changing the branch invalidates downstream service/staff/time choices
+    set((s) => ({
+      ...s,
+      branchId: id,
+      serviceId: null,
+      staffId: null,
+      date: null,
+      startsAt: null,
+    }));
+  },
   setService(id) {
-    // Changing the service invalidates downstream choices
-    set({ ...initialState, serviceId: id });
+    // Changing the service invalidates downstream choices but keeps branch
+    set((s) => ({
+      ...initialState,
+      branchId: s.branchId,
+      serviceId: id,
+    }));
   },
   setStaff(id) {
     set((s) => ({ ...s, staffId: id, date: null, startsAt: null }));
