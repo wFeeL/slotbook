@@ -271,3 +271,135 @@ async def test_schedule_unlinked_403(client, staff_user, settings) -> None:
         headers=auth_headers(staff_user, settings),
     )
     assert res.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# PUT /staff/me/working-hours, POST/DELETE /staff/me/exceptions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_my_working_hours_empty(
+    client, staff_user, linked_staff, settings
+) -> None:
+    res = await client.get(
+        "/api/v1/staff/me/working-hours",
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+@pytest.mark.asyncio
+async def test_put_my_working_hours_replaces(
+    client, db_session, staff_user, linked_staff, settings
+) -> None:
+    body = {
+        "entries": [
+            {
+                "weekday": 0,
+                "start_time": "09:00:00",
+                "end_time": "18:00:00",
+                "is_active": True,
+            },
+            {
+                "weekday": 1,
+                "start_time": "10:00:00",
+                "end_time": "20:00:00",
+                "is_active": True,
+            },
+        ]
+    }
+    res = await client.put(
+        "/api/v1/staff/me/working-hours",
+        json=body,
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 204, res.text
+
+    get = await client.get(
+        "/api/v1/staff/me/working-hours",
+        headers=auth_headers(staff_user, settings),
+    )
+    rows = get.json()
+    assert len(rows) == 2
+    assert {r["weekday"] for r in rows} == {0, 1}
+
+
+@pytest.mark.asyncio
+async def test_create_my_exception_day_off(
+    client, staff_user, linked_staff, settings
+) -> None:
+    res = await client.post(
+        "/api/v1/staff/me/exceptions",
+        json={"date": "2026-06-15", "type": "day_off", "reason": "Отпуск"},
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 201, res.text
+    body = res.json()
+    assert body["type"] == "day_off"
+    assert body["date"] == "2026-06-15"
+    assert body["start_time"] is None
+    assert body["end_time"] is None
+
+
+@pytest.mark.asyncio
+async def test_delete_my_exception(
+    client, db_session, staff_user, linked_staff, settings
+) -> None:
+    from app.db.enums import ScheduleExceptionType
+    from app.db.models.schedule import ScheduleException
+    from datetime import date as date_t
+    exc = ScheduleException(
+        staff_id=linked_staff.id,
+        date=date_t(2026, 6, 20),
+        type=ScheduleExceptionType.DAY_OFF,
+    )
+    db_session.add(exc)
+    await db_session.commit()
+    await db_session.refresh(exc)
+
+    res = await client.delete(
+        f"/api/v1/staff/me/exceptions/{exc.id}",
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_delete_other_staff_exception_404(
+    client, db_session, business, staff_user, linked_staff, settings
+) -> None:
+    other = StaffMember(
+        business_id=business.id, branch_id=business._default_branch_id, name="Other"
+    )
+    db_session.add(other)
+    await db_session.commit()
+    await db_session.refresh(other)
+    from app.db.enums import ScheduleExceptionType
+    from app.db.models.schedule import ScheduleException
+    from datetime import date as date_t
+    exc = ScheduleException(
+        staff_id=other.id,
+        date=date_t(2026, 6, 21),
+        type=ScheduleExceptionType.DAY_OFF,
+    )
+    db_session.add(exc)
+    await db_session.commit()
+    await db_session.refresh(exc)
+
+    res = await client.delete(
+        f"/api/v1/staff/me/exceptions/{exc.id}",
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_unlinked_working_hours_put_403(client, staff_user, settings) -> None:
+    res = await client.put(
+        "/api/v1/staff/me/working-hours",
+        json={"entries": []},
+        headers=auth_headers(staff_user, settings),
+    )
+    assert res.status_code == 403

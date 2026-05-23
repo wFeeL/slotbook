@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/api/endpoints';
+import type { WorkingHoursEntry } from '@/shared/api/types';
 
 const KEY = ['staff-me'] as const;
 
@@ -40,6 +41,51 @@ export function useUpdateMyBooking() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...KEY, 'bookings'] });
+      qc.invalidateQueries({ queryKey: [...KEY, 'schedule'] });
+    },
+  });
+}
+
+export function useMyWorkingHours() {
+  return useQuery({
+    queryKey: [...KEY, 'working-hours'],
+    queryFn: () => api.staffMe.getWorkingHours(),
+  });
+}
+
+export function useReplaceMyWorkingHours() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (entries: WorkingHoursEntry[]) =>
+      api.staffMe.replaceWorkingHours(entries),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'working-hours'] });
+      qc.invalidateQueries({ queryKey: [...KEY, 'schedule'] });
+    },
+  });
+}
+
+export function useCreateMyException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      date: string;
+      type: 'day_off' | 'extra_working_time' | 'blocked_time';
+      start_time?: string | null;
+      end_time?: string | null;
+      reason?: string | null;
+    }) => api.staffMe.createException(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'schedule'] });
+    },
+  });
+}
+
+export function useDeleteMyException() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.staffMe.deleteException(id),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...KEY, 'schedule'] });
     },
   });

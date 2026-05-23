@@ -8,13 +8,18 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import {
   useMyBookings,
   useMySchedule,
+  useMyWorkingHours,
+  useReplaceMyWorkingHours,
   useStaffMe,
   useUpdateMyBooking,
 } from '@/entities/staff-me/api';
 import { pushToast } from '@/shared/store/toast-store';
 import { showConfirm } from '@/shared/telegram/hooks';
 import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
+import { WorkingHoursEditor } from '@/features/admin-staff/WorkingHoursEditor';
+import { StaffExceptionsEditor } from '@/features/staff-schedule/StaffExceptionsEditor';
 import { cn } from '@/shared/lib/cn';
+import type { WorkingHoursEntry } from '@/shared/api/types';
 import type { StaffBookingRead } from '@/entities/staff-me/model';
 
 type Tab = 'today' | 'week' | 'schedule';
@@ -68,11 +73,24 @@ export function StaffCabinetPage() {
 
   const [weekStart, setWeekStart] = useState<string>(() => currentMondayISO());
   const schedule = useMySchedule(weekStart);
+  const workingHours = useMyWorkingHours();
+  const replaceWH = useReplaceMyWorkingHours();
+  const [editHours, setEditHours] = useState(false);
 
   function shiftWeek(deltaDays: number) {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + deltaDays);
     setWeekStart(d.toISOString().slice(0, 10));
+  }
+
+  async function saveHours(entries: WorkingHoursEntry[]) {
+    try {
+      await replaceWH.mutateAsync(entries);
+      pushToast('success', 'Часы обновлены');
+      setEditHours(false);
+    } catch (e) {
+      pushToast('error', e instanceof Error ? e.message : 'Не удалось');
+    }
   }
 
   async function mark(b: StaffBookingRead, status: 'completed' | 'no_show') {
@@ -216,35 +234,65 @@ export function StaffCabinetPage() {
 
       {tab === 'schedule' && (
         <section className="flex flex-col gap-3">
-          {schedule.isLoading && <Skeleton height={200} />}
-          {schedule.data?.days.map((day) => (
-            <Card key={day.date} surface="shell">
-              <div className="flex flex-col gap-1">
-                <div className="text-ink font-semibold capitalize">
-                  {fmtDayHeader(day.date)}
-                </div>
-                {day.working_intervals.length === 0 ? (
-                  <div className="text-sienna-deep text-sm">Выходной</div>
-                ) : (
-                  <div className="text-ink text-sm">
-                    {day.working_intervals
-                      .map((i) => `${i.start_time.slice(0, 5)}–${i.end_time.slice(0, 5)}`)
-                      .join(', ')}
+          <div className="flex items-center justify-between">
+            <h3 className="text-sienna-deep text-xs uppercase tracking-wide">
+              Рабочие часы по дням недели
+            </h3>
+            {!editHours && (
+              <button
+                type="button"
+                className="text-rose text-sm font-semibold"
+                onClick={() => setEditHours(true)}
+              >
+                Изменить
+              </button>
+            )}
+          </div>
+          {workingHours.isLoading && <Skeleton height={120} />}
+          {editHours ? (
+            <WorkingHoursEditor
+              initial={workingHours.data ?? []}
+              onSave={saveHours}
+              saving={replaceWH.isPending}
+            />
+          ) : (
+            <>
+              {schedule.data?.days.map((day) => (
+                <Card key={day.date} surface="shell">
+                  <div className="flex flex-col gap-1">
+                    <div className="text-ink font-semibold capitalize">
+                      {fmtDayHeader(day.date)}
+                    </div>
+                    {day.working_intervals.length === 0 ? (
+                      <div className="text-sienna-deep text-sm">Выходной</div>
+                    ) : (
+                      <div className="text-ink text-sm">
+                        {day.working_intervals
+                          .map(
+                            (i) =>
+                              `${i.start_time.slice(0, 5)}–${i.end_time.slice(0, 5)}`,
+                          )
+                          .join(', ')}
+                      </div>
+                    )}
+                    {day.exceptions.length > 0 && (
+                      <div className="text-rose text-xs">
+                        {day.exceptions
+                          .map((e) => {
+                            const label = EXCEPTION_LABELS[e.type] ?? e.type;
+                            return e.reason ? `${label}: ${e.reason}` : label;
+                          })
+                          .join(' • ')}
+                      </div>
+                    )}
                   </div>
-                )}
-                {day.exceptions.length > 0 && (
-                  <div className="text-rose text-xs">
-                    {day.exceptions
-                      .map((e) => {
-                        const label = EXCEPTION_LABELS[e.type] ?? e.type;
-                        return e.reason ? `${label}: ${e.reason}` : label;
-                      })
-                      .join(' • ')}
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
+                </Card>
+              ))}
+              {schedule.data && (
+                <StaffExceptionsEditor days={schedule.data.days} />
+              )}
+            </>
+          )}
         </section>
       )}
     </div>

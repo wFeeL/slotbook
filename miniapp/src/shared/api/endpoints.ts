@@ -466,5 +466,39 @@ export const api = {
         StaffScheduleResponseSchema,
       );
     },
+    getWorkingHours(): Promise<WorkingHoursEntry[]> {
+      return request(
+        '/api/v1/staff/me/working-hours',
+        { method: 'GET' },
+        z.array(WorkingHoursEntrySchema),
+      );
+    },
+    replaceWorkingHours(entries: WorkingHoursEntry[]): Promise<void> {
+      return request(
+        '/api/v1/staff/me/working-hours',
+        { method: 'PUT', body: JSON.stringify({ entries }) },
+        z.unknown(),
+      ).then(() => undefined);
+    },
+    createException(body: {
+      date: string;
+      type: 'day_off' | 'extra_working_time' | 'blocked_time';
+      start_time?: string | null;
+      end_time?: string | null;
+      reason?: string | null;
+    }): Promise<ScheduleExceptionRead> {
+      return request(
+        '/api/v1/staff/me/exceptions',
+        { method: 'POST', body: JSON.stringify(body) },
+        ScheduleExceptionReadSchema,
+      );
+    },
+    deleteException(exceptionId: number): Promise<void> {
+      return request(
+        `/api/v1/staff/me/exceptions/${exceptionId}`,
+        { method: 'DELETE' },
+        z.unknown(),
+      ).then(() => undefined);
+    },
   },
 };

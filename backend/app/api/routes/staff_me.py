@@ -12,6 +12,7 @@ from app.core.errors import NotFound
 from app.core.time import local_date_bounds_utc
 from app.db.enums import BookingStatus
 from app.db.models.booking import Booking
+from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.user import User
 from app.db.repositories.audit import AuditRepo
@@ -23,6 +24,12 @@ from app.db.repositories.schedules import (
     WorkingHoursRepo,
 )
 from app.db.repositories.staff import StaffRepo
+from app.schemas.schedules import (
+    ScheduleExceptionCreate,
+    ScheduleExceptionRead,
+    WorkingHoursEntry,
+    WorkingHoursReplace,
+)
 from app.schemas.staff_me import (
     StaffBookingPatch,
     StaffBookingRead,
@@ -280,3 +287,79 @@ async def my_schedule(
         business_timezone=business.timezone,
         days=days,
     )
+
+
+# ---------------------------------------------------------------------------
+# Staff manages own working hours and schedule exceptions
+# ---------------------------------------------------------------------------
+
+
+@router.get("/working-hours", response_model=list[WorkingHoursEntry])
+async def my_working_hours(
+    staff: LinkedStaff, session: SessionDep
+) -> list[WorkingHoursEntry]:
+    rows = await WorkingHoursRepo(session).list_for_staff(staff.id)
+    return [WorkingHoursEntry.model_validate(r) for r in rows]
+
+
+@router.put("/working-hours", status_code=status.HTTP_204_NO_CONTENT)
+async def replace_my_working_hours(
+    body: WorkingHoursReplace, staff: LinkedStaff, session: SessionDep
+) -> None:
+    entries = [
+        WorkingHours(
+            staff_id=staff.id,
+            weekday=e.weekday,
+            start_time=e.start_time,
+            end_time=e.end_time,
+            is_active=e.is_active,
+        )
+        for e in body.entries
+    ]
+    await WorkingHoursRepo(session).replace_for_staff(staff.id, entries)
+    await session.commit()
+
+
+@router.post(
+    "/exceptions",
+    response_model=ScheduleExceptionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_my_exception(
+    body: ScheduleExceptionCreate,
+    staff: LinkedStaff,
+    session: SessionDep,
+) -> ScheduleExceptionRead:
+    exc = ScheduleException(
+        staff_id=staff.id,
+        date=body.date,
+        type=body.type,
+        start_time=body.start_time,
+        end_time=body.end_time,
+        reason=body.reason,
+    )
+    ScheduleExceptionsRepo(session).add(exc)
+    await session.commit()
+    await session.refresh(exc)
+    return ScheduleExceptionRead.model_validate(exc)
+
+
+@router.delete(
+    "/exceptions/{exception_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_my_exception(
+    exception_id: int, staff: LinkedStaff, session: SessionDep
+) -> None:
+    # Verify exception belongs to this staff before deleting.
+    from sqlalchemy import select as _select
+    exc = (
+        await session.execute(
+            _select(ScheduleException).where(ScheduleException.id == exception_id)
+        )
+    ).scalar_one_or_none()
+    if exc is None or exc.staff_id != staff.id:
+        raise NotFound("Исключение не найдено")
+    deleted = await ScheduleExceptionsRepo(session).delete(exception_id)
+    if not deleted:
+        raise NotFound("Исключение не найдено")
+    await session.commit()
