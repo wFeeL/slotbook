@@ -73,6 +73,8 @@ export interface TelegramWebApp {
   initDataUnsafe: TelegramInitDataUnsafe;
   colorScheme: 'light' | 'dark';
   themeParams: TelegramThemeParams;
+  version?: string;
+  isVersionAtLeast?: (v: string) => boolean;
   ready(): void;
   expand(): void;
   close(): void;

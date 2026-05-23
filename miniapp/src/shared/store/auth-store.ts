@@ -13,35 +13,76 @@ interface AuthState {
   loadFromStorage(): Promise<void>;
 }
 
-async function readCloudStorage(): Promise<string | null> {
+// CloudStorage was added in Telegram WebApp 6.9. Older clients (and the
+// standalone telegram-web-app.js loaded in a plain browser) expose the
+// CloudStorage object but throw WebAppMethodUnsupported when called.
+// We probe `isVersionAtLeast('6.9')` and fall back to sessionStorage when
+// unsupported. A timeout safeguards against callbacks that never fire.
+
+function cloudStorageSupported(): boolean {
   const tg = getWebApp();
-  if (!tg?.CloudStorage) {
+  if (!tg?.CloudStorage) return false;
+  if (typeof tg.isVersionAtLeast !== 'function') return false;
+  try {
+    return tg.isVersionAtLeast('6.9') === true;
+  } catch {
+    return false;
+  }
+}
+
+async function readCloudStorage(): Promise<string | null> {
+  if (!cloudStorageSupported()) {
     return sessionStorage.getItem(STORAGE_KEY);
   }
+  const tg = getWebApp()!;
   return new Promise((resolve) => {
-    tg.CloudStorage!.getItem(STORAGE_KEY, (_err, value) => resolve(value ?? null));
+    const fallback = () => resolve(sessionStorage.getItem(STORAGE_KEY));
+    const timer = setTimeout(fallback, 1000);
+    try {
+      tg.CloudStorage!.getItem(STORAGE_KEY, (_err, value) => {
+        clearTimeout(timer);
+        resolve(value ?? null);
+      });
+    } catch {
+      clearTimeout(timer);
+      fallback();
+    }
   });
 }
 
 async function writeCloudStorage(value: string): Promise<void> {
-  const tg = getWebApp();
-  if (!tg?.CloudStorage) {
-    sessionStorage.setItem(STORAGE_KEY, value);
-    return;
-  }
+  sessionStorage.setItem(STORAGE_KEY, value); // mirror locally so reads work even if cloud write fails
+  if (!cloudStorageSupported()) return;
+  const tg = getWebApp()!;
   return new Promise((resolve) => {
-    tg.CloudStorage!.setItem(STORAGE_KEY, value, () => resolve());
+    const timer = setTimeout(() => resolve(), 1000);
+    try {
+      tg.CloudStorage!.setItem(STORAGE_KEY, value, () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    } catch {
+      clearTimeout(timer);
+      resolve();
+    }
   });
 }
 
 async function removeCloudStorage(): Promise<void> {
-  const tg = getWebApp();
-  if (!tg?.CloudStorage) {
-    sessionStorage.removeItem(STORAGE_KEY);
-    return;
-  }
+  sessionStorage.removeItem(STORAGE_KEY);
+  if (!cloudStorageSupported()) return;
+  const tg = getWebApp()!;
   return new Promise((resolve) => {
-    tg.CloudStorage!.removeItem(STORAGE_KEY, () => resolve());
+    const timer = setTimeout(() => resolve(), 1000);
+    try {
+      tg.CloudStorage!.removeItem(STORAGE_KEY, () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    } catch {
+      clearTimeout(timer);
+      resolve();
+    }
   });
 }
 
