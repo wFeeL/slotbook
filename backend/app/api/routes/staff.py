@@ -13,8 +13,11 @@ async def list_staff(
     _user: CurrentUser,
     session: SessionDep,
     service_id: int = Query(..., gt=0),
+    branch_id: int | None = None,
 ) -> list[StaffRead]:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
-    staff = await StaffRepo(session).list_for_service(business.id, service_id)
+    staff = await StaffRepo(session).list_for_service(
+        business.id, service_id, branch_id=branch_id
+    )
     return [StaffRead.model_validate(s) for s in staff]

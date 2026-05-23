@@ -16,6 +16,7 @@ class BookingCreate(BaseModel):
 
 class BookingRead(BaseModel):
     id: int
+    branch_id: int
     service_id: int
     staff_id: int
     starts_at: datetime
