@@ -6,6 +6,7 @@ class StaffRead(BaseModel):
 
     id: int
     branch_id: int
+    user_id: int | None = None
     name: str
     description: str | None
     is_active: bool
@@ -19,6 +20,7 @@ class StaffCreate(BaseModel):
 
 class StaffUpdate(BaseModel):
     branch_id: int | None = None
+    user_id: int | None = Field(default=None)
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
     is_active: bool | None = None
@@ -33,6 +35,7 @@ class StaffReadWithServices(BaseModel):
 
     id: int
     branch_id: int
+    user_id: int | None = None
     name: str
     description: str | None
     is_active: bool

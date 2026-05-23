@@ -130,3 +130,105 @@ async def test_get_linked_staff_raises_when_unlinked(db_session) -> None:
     await db_session.refresh(user)
     with pytest.raises(Forbidden):
         await get_linked_staff(user=user, session=db_session)
+
+
+# ---------------------------------------------------------------------------
+# PATCH /admin/staff/:id  user_id linking
+# ---------------------------------------------------------------------------
+
+from tests.conftest import auth_headers  # noqa: E402
+
+
+@pytest.mark.asyncio
+async def test_admin_patch_staff_links_user(
+    client, db_session, business, admin_user, settings
+) -> None:
+    staff = StaffMember(
+        business_id=business.id, branch_id=business._default_branch_id, name="X"
+    )
+    target = User(telegram_id=5005, first_name="T", role=UserRole.STAFF)
+    db_session.add_all([staff, target])
+    await db_session.commit()
+    await db_session.refresh(staff)
+    await db_session.refresh(target)
+
+    res = await client.patch(
+        f"/api/v1/admin/staff/{staff.id}",
+        json={"user_id": target.id},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["user_id"] == target.id
+
+
+@pytest.mark.asyncio
+async def test_admin_patch_staff_unlink_user(
+    client, db_session, business, admin_user, settings
+) -> None:
+    target = User(telegram_id=5006, first_name="T", role=UserRole.STAFF)
+    db_session.add(target)
+    await db_session.flush()
+    staff = StaffMember(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        name="X",
+        user_id=target.id,
+    )
+    db_session.add(staff)
+    await db_session.commit()
+    await db_session.refresh(staff)
+
+    res = await client.patch(
+        f"/api/v1/admin/staff/{staff.id}",
+        json={"user_id": None},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["user_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_admin_patch_staff_rejects_client_role(
+    client, db_session, business, admin_user, client_user, settings
+) -> None:
+    staff = StaffMember(
+        business_id=business.id, branch_id=business._default_branch_id, name="X"
+    )
+    db_session.add(staff)
+    await db_session.commit()
+    await db_session.refresh(staff)
+
+    res = await client.patch(
+        f"/api/v1/admin/staff/{staff.id}",
+        json={"user_id": client_user.id},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_admin_patch_staff_conflicting_link_returns_409(
+    client, db_session, business, admin_user, settings
+) -> None:
+    target = User(telegram_id=5007, first_name="T", role=UserRole.STAFF)
+    db_session.add(target)
+    await db_session.flush()
+    staff_a = StaffMember(
+        business_id=business.id,
+        branch_id=business._default_branch_id,
+        name="A",
+        user_id=target.id,
+    )
+    staff_b = StaffMember(
+        business_id=business.id, branch_id=business._default_branch_id, name="B"
+    )
+    db_session.add_all([staff_a, staff_b])
+    await db_session.commit()
+    await db_session.refresh(staff_b)
+
+    res = await client.patch(
+        f"/api/v1/admin/staff/{staff_b.id}",
+        json={"user_id": target.id},
+        headers=auth_headers(admin_user, settings),
+    )
+    assert res.status_code == 409

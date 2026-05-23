@@ -180,13 +180,39 @@ async def create_staff(body: StaffCreate, _admin: AdminUser, session: SessionDep
 async def update_staff(
     staff_id: int, body: StaffUpdate, _admin: AdminUser, session: SessionDep
 ) -> StaffRead:
+    from fastapi import HTTPException
+    from sqlalchemy.exc import IntegrityError
+
     repo = StaffRepo(session)
     staff = await repo.get(staff_id)
     if staff is None:
         raise NotFound("Staff member not found")
-    for field, value in body.model_dump(exclude_unset=True).items():
+
+    updates = body.model_dump(exclude_unset=True)
+
+    if "user_id" in updates and updates["user_id"] is not None:
+        target = await UsersRepo(session).get_by_id(updates["user_id"])
+        if target is None:
+            raise NotFound("User not found")
+        if target.role not in {UserRole.STAFF, UserRole.ADMIN, UserRole.SUPERADMIN}:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="User role must be staff/admin/superadmin",
+            )
+
+    for field, value in updates.items():
         setattr(staff, field, value)
-    await session.commit()
+
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        if "ux_staff_user_active" in str(exc.orig or exc):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Этот пользователь уже привязан к другому мастеру",
+            ) from exc
+        raise
     await session.refresh(staff)
     return StaffRead.model_validate(staff)
 
