@@ -141,9 +141,6 @@ miniapp/
 infra/
   caddy/Caddyfile         # production reverse-proxy config
   postgres/init-test-db.sql
-docs/
-  superpowers/specs/      # design specs (one per sub-project)
-  superpowers/plans/      # implementation plans
 scripts/
   deploy.sh
   backup_db.sh
@@ -169,10 +166,6 @@ A unique partial index `bookings_active_by_staff (staff_id, starts_at) WHERE sta
 - Client: `GET /services`, `GET /staff?service_id=…`, `GET /slots?service_id=…&staff_id=…&date=YYYY-MM-DD`, `POST /bookings`, `GET /bookings/my`, `POST /bookings/{id}/cancel`.
 - Admin: `GET /admin/dashboard`, `GET /admin/bookings`, `POST /admin/bookings`, `PATCH /admin/bookings/{id}`, `POST /admin/bookings/{id}/cancel`.
 - Admin CRUD: `POST/PATCH/DELETE /admin/services{,/:id}`, `POST/PATCH/DELETE /admin/staff{,/:id}`, `PUT /admin/staff/:id/services`, `GET/PUT /admin/staff/:id/working-hours`, `POST/DELETE /admin/staff/:id/exceptions`.
-
-## Plans and specs
-
-Design specs and implementation plans for each sub-project live in `docs/superpowers/`. Each sub-project is a self-contained slice with its own spec → plan → review → merge cycle.
 
 ## Selling the template
 

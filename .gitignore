@@ -25,3 +25,12 @@ backups/
 
 # OS
 .DS_Store
+
+# Agent workspaces / spec & plan scratch
+docs/superpowers/
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+.claude/
+.cursor/
+.aider*
