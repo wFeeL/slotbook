@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import { Blob } from '@/shared/ui/Blob';
 import { Button } from '@/shared/ui/Button';
+import { Sparkles } from '@/shared/ui/Sparkles';
 import { useAuth } from '@/features/auth/useAuth';
 import { useAuthStore } from '@/shared/store/auth-store';
 
@@ -25,9 +26,10 @@ export function OnboardingPage() {
             {businessName}
           </span>
           <h1 className="text-display text-ink font-display leading-tight">
-            Привет, {firstName ?? 'друг'} <span className="text-rose">✦</span>
+            Привет, {firstName ?? 'друг'}
           </h1>
-          <p className="text-sienna-deep text-base">
+          <Sparkles tone="rose" className="mt-1" />
+          <p className="text-sienna-deep text-base mt-1">
             Здесь живёт ваша запись.<br />Тихая и заботливая.
           </p>
         </header>
