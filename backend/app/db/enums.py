@@ -33,12 +33,15 @@ class ScheduleExceptionType(StrEnum):
 class NotificationType(StrEnum):
     BOOKING_CREATED_CLIENT = "booking_created_client"
     BOOKING_CREATED_ADMIN = "booking_created_admin"
+    BOOKING_CREATED_STAFF = "booking_created_staff"
     REMINDER_24H = "reminder_24h"
     REMINDER_2H = "reminder_2h"
     BOOKING_CANCELLED_CLIENT = "booking_cancelled_client"
     BOOKING_CANCELLED_ADMIN = "booking_cancelled_admin"
+    BOOKING_CANCELLED_STAFF = "booking_cancelled_staff"
     BOOKING_RESCHEDULED_CLIENT = "booking_rescheduled_client"
     BOOKING_RESCHEDULED_ADMIN = "booking_rescheduled_admin"
+    BOOKING_RESCHEDULED_STAFF = "booking_rescheduled_staff"
 
 
 class NotificationStatus(StrEnum):

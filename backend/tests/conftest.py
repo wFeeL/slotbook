@@ -82,10 +82,10 @@ async def db_engine():  # type: ignore[no-untyped-def]
         await conn.execute(
             text(
                 "CREATE TYPE notification_type AS ENUM ("
-                "'booking_created_client','booking_created_admin',"
+                "'booking_created_client','booking_created_admin','booking_created_staff',"
                 "'reminder_24h','reminder_2h',"
-                "'booking_cancelled_client','booking_cancelled_admin',"
-                "'booking_rescheduled_client','booking_rescheduled_admin')"
+                "'booking_cancelled_client','booking_cancelled_admin','booking_cancelled_staff',"
+                "'booking_rescheduled_client','booking_rescheduled_admin','booking_rescheduled_staff')"
             )
         )
         await conn.execute(
