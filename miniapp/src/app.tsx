@@ -6,6 +6,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { Skeleton } from './shared/ui/Skeleton';
 import { ToastContainer } from './shared/ui/Toast';
 import { RequireAdmin } from './features/admin-guard/RequireAdmin';
+import { AuthGate } from './features/auth/AuthGate';
 
 // Client-side lazy chunks
 const BookingFlowPage = lazy(() => import('./pages/BookingFlowPage').then((m) => ({ default: m.BookingFlowPage })));
@@ -49,35 +50,37 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Suspense fallback={<Loading />}>
-          <Routes>
-            <Route path="/" element={<OnboardingPage />} />
-            <Route path="/book/success/:bookingId" element={<BookingSuccessPage />} />
-            <Route path="/book/*" element={<BookingFlowPage />} />
-            <Route path="/my-bookings" element={<MyBookingsPage />} />
-            <Route path="/my-bookings/:id" element={<BookingDetailPage />} />
+          <AuthGate>
+            <Routes>
+              <Route path="/" element={<OnboardingPage />} />
+              <Route path="/book/success/:bookingId" element={<BookingSuccessPage />} />
+              <Route path="/book/*" element={<BookingFlowPage />} />
+              <Route path="/my-bookings" element={<MyBookingsPage />} />
+              <Route path="/my-bookings/:id" element={<BookingDetailPage />} />
 
-            <Route
-              path="/admin"
-              element={
-                <RequireAdmin>
-                  <AdminLayout />
-                </RequireAdmin>
-              }
-            >
-              <Route index element={<AdminDashboardPage />} />
-              <Route path="bookings" element={<AdminBookingsPage />} />
-              <Route path="bookings/new" element={<AdminBookingNewPage />} />
-              <Route path="bookings/:id" element={<AdminBookingDetailPage />} />
-              <Route path="services" element={<AdminServicesPage />} />
-              <Route path="services/new" element={<AdminServiceFormPage />} />
-              <Route path="services/:id/edit" element={<AdminServiceFormPage />} />
-              <Route path="staff" element={<AdminStaffPage />} />
-              <Route path="staff/new" element={<AdminStaffFormPage />} />
-              <Route path="staff/:id" element={<AdminStaffDetailPage />} />
-            </Route>
+              <Route
+                path="/admin"
+                element={
+                  <RequireAdmin>
+                    <AdminLayout />
+                  </RequireAdmin>
+                }
+              >
+                <Route index element={<AdminDashboardPage />} />
+                <Route path="bookings" element={<AdminBookingsPage />} />
+                <Route path="bookings/new" element={<AdminBookingNewPage />} />
+                <Route path="bookings/:id" element={<AdminBookingDetailPage />} />
+                <Route path="services" element={<AdminServicesPage />} />
+                <Route path="services/new" element={<AdminServiceFormPage />} />
+                <Route path="services/:id/edit" element={<AdminServiceFormPage />} />
+                <Route path="staff" element={<AdminStaffPage />} />
+                <Route path="staff/new" element={<AdminStaffFormPage />} />
+                <Route path="staff/:id" element={<AdminStaffDetailPage />} />
+              </Route>
 
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </AuthGate>
         </Suspense>
         <ToastContainer />
       </BrowserRouter>
