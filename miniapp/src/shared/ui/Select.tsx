@@ -13,7 +13,7 @@ export function Select({ label, error, className, id, children, ...rest }: Selec
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={inputId} className="text-sienna text-sm font-semibold">
+        <label htmlFor={inputId} className="text-sienna-deep text-sm font-semibold">
           {label}
         </label>
       )}

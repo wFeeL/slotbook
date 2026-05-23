@@ -20,7 +20,7 @@ export function AdminStaffPage() {
 
       {q.isLoading && <Skeleton height={80} />}
       {!q.isLoading && (q.data ?? []).length === 0 && (
-        <p className="text-sienna text-sm">Пока нет сотрудников.</p>
+        <p className="text-sienna-deep text-sm">Пока нет сотрудников.</p>
       )}
       <div className="flex flex-col gap-2">
         {(q.data ?? []).map((s) => (
@@ -29,7 +29,7 @@ export function AdminStaffPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-ink font-semibold">{s.name}</div>
-                  {s.description && <div className="text-sienna text-sm">{s.description}</div>}
+                  {s.description && <div className="text-sienna-deep text-sm">{s.description}</div>}
                 </div>
                 {!s.is_active && <Badge tone="clay">Архив</Badge>}
               </div>

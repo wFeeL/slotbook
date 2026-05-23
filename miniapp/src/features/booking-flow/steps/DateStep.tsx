@@ -35,9 +35,9 @@ export function DateStep() {
   return (
     <div className="px-5 pt-8 pb-32 max-w-md mx-auto" style={{ animation: 'fade-up 320ms ease-out both' }}>
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 04</span>
+        <span className="text-sienna-deep text-sm font-semibold">№ 04</span>
         <h1 className="text-2xl text-ink font-display mt-1">День</h1>
-        <p className="text-sienna text-base mt-2">Выберите удобный день</p>
+        <p className="text-sienna-deep text-base mt-2">Выберите удобный день</p>
       </header>
 
       <div className="-mx-5 px-5 overflow-x-auto no-scrollbar">
@@ -58,7 +58,7 @@ export function DateStep() {
                     : 'bg-shell text-ink border-sand hover:bg-sand/30',
                 )}
               >
-                <span className={cn('text-xs uppercase', selected ? 'opacity-90' : 'text-sienna')}>
+                <span className={cn('text-xs uppercase', selected ? 'opacity-90' : 'text-sienna-deep')}>
                   {label.weekday}
                 </span>
                 <span className="text-2xl font-display leading-none mt-1">{label.day}</span>

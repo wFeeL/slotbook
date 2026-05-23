@@ -82,7 +82,7 @@ export function AdminServiceFormPage() {
   }
 
   if (isEdit && initial === null) {
-    return <div className="text-sienna text-sm">Загрузка…</div>;
+    return <div className="text-sienna-deep text-sm">Загрузка…</div>;
   }
 
   return (

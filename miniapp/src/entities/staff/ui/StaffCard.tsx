@@ -18,7 +18,7 @@ export function StaffCard({ staff, onSelect }: Props) {
         </div>
         <div className="flex flex-col">
           <span className="text-lg font-semibold text-ink">{staff.name}</span>
-          {staff.description && <span className="text-sm text-sienna">{staff.description}</span>}
+          {staff.description && <span className="text-sm text-sienna-deep">{staff.description}</span>}
         </div>
       </div>
     </Card>

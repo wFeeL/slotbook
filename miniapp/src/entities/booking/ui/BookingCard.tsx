@@ -12,9 +12,9 @@ interface Props {
 const TONE_TEXT: Record<ReturnType<typeof bookingStatusTone>, string> = {
   sage: 'text-sage',
   clay: 'text-clay',
-  sienna: 'text-sienna',
+  sienna: 'text-sienna-deep',
   rose: 'text-rose-deep',
-  sand: 'text-sienna',
+  sand: 'text-sienna-deep',
 };
 
 export function BookingCard({ booking, onSelect }: Props) {
@@ -31,7 +31,7 @@ export function BookingCard({ booking, onSelect }: Props) {
           <span className="text-lg font-semibold text-ink">
             {formatLocalDate(booking.starts_at)}
           </span>
-          <span className="text-base tabular-nums text-sienna">
+          <span className="text-base tabular-nums text-sienna-deep">
             {formatLocalTime(booking.starts_at)}
           </span>
         </div>

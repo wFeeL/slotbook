@@ -36,9 +36,9 @@ export function BranchStep() {
       style={{ animation: 'fade-up 320ms ease-out both' }}
     >
       <header className="mb-6">
-        <span className="text-sienna text-sm font-semibold">№ 01</span>
+        <span className="text-sienna-deep text-sm font-semibold">№ 01</span>
         <h1 className="text-2xl text-ink font-display mt-1">Филиал</h1>
-        <p className="text-sienna text-base mt-2">Куда вам удобнее?</p>
+        <p className="text-sienna-deep text-base mt-2">Куда вам удобнее?</p>
       </header>
 
       <div className="flex flex-col gap-3">
@@ -58,7 +58,7 @@ export function BranchStep() {
             <BranchCard key={b.id} branch={b} onSelect={() => handleSelect(b.id)} />
           ))}
         {!q.isLoading && !q.error && branches.length === 0 && (
-          <div className="text-sienna text-center mt-12">Нет доступных филиалов.</div>
+          <div className="text-sienna-deep text-center mt-12">Нет доступных филиалов.</div>
         )}
         {/* When exactly 1 branch, the effect auto-navigates — render skeleton while it happens */}
         {branches.length === 1 && <Skeleton height={90} />}

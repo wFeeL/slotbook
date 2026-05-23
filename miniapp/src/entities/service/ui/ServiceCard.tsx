@@ -13,10 +13,10 @@ export function ServiceCard({ service, onSelect }: Props) {
       <div className="flex flex-col gap-2">
         <span className="text-lg font-semibold text-ink">{service.title}</span>
         {service.description && (
-          <span className="text-sm text-sienna">{service.description}</span>
+          <span className="text-sm text-sienna-deep">{service.description}</span>
         )}
         <div className="flex items-center gap-3 text-sm tabular-nums">
-          <span className="text-sienna">{formatDuration(service.duration_minutes)}</span>
+          <span className="text-sienna-deep">{formatDuration(service.duration_minutes)}</span>
           {service.price && (
             <>
               <span className="text-sand">·</span>

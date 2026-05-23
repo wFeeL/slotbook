@@ -4,6 +4,7 @@ import { useMyBookings } from '@/entities/booking/api';
 import { BookingCard } from '@/entities/booking/ui/BookingCard';
 import { Blob } from '@/shared/ui/Blob';
 import { Button } from '@/shared/ui/Button';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { useBackButton } from '@/shared/telegram/hooks';
 import type { BookingRead } from '@/shared/api/types';
@@ -49,15 +50,17 @@ export function MyBookingsPage() {
         )}
 
         {!bookings.isLoading && upcoming.length === 0 && history.length === 0 && (
-          <div className="text-center py-12 flex flex-col gap-4 items-center">
-            <p className="text-sienna">У вас пока нет записей.</p>
-            <Button onClick={() => navigate('/book/service')}>Записаться</Button>
-          </div>
+          <EmptyState
+            glyph="calendar"
+            title="Пока тихо"
+            description="Здесь будут ваши предстоящие встречи. Запишитесь — и здесь оживёт."
+            action={<Button onClick={() => navigate('/book/branch')}>Записаться</Button>}
+          />
         )}
 
         {upcoming.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sienna text-sm font-semibold uppercase mb-3 tracking-wide">
+            <h2 className="text-sienna-deep text-sm font-semibold uppercase mb-3 tracking-wide">
               Скоро
             </h2>
             <div className="flex flex-col gap-3">
@@ -77,7 +80,7 @@ export function MyBookingsPage() {
             <button
               type="button"
               onClick={() => setShowHistory((v) => !v)}
-              className="flex items-center gap-2 text-sienna text-sm font-semibold uppercase mb-3 tracking-wide"
+              className="flex items-center gap-2 text-sienna-deep text-sm font-semibold uppercase mb-3 tracking-wide"
             >
               История {showHistory ? '−' : '+'}
             </button>

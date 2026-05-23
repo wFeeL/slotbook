@@ -18,7 +18,7 @@ function todayDateString(): string {
 function Counter({ label, value, loading }: { label: string; value?: number; loading: boolean }) {
   return (
     <Card surface="shell">
-      <div className="text-sienna text-xs font-semibold uppercase tracking-wide">{label}</div>
+      <div className="text-sienna-deep text-xs font-semibold uppercase tracking-wide">{label}</div>
       <div className="text-3xl text-ink font-display mt-1">
         {loading ? <Skeleton height={32} className="w-12" /> : (value ?? 0)}
       </div>
@@ -42,7 +42,7 @@ export function AdminDashboardPage() {
         <h2 className="text-xl text-ink font-display mb-3">Записи на сегодня</h2>
         {today.isLoading && <Skeleton height={80} />}
         {!today.isLoading && (today.data ?? []).length === 0 && (
-          <p className="text-sienna text-sm">На сегодня записей нет.</p>
+          <p className="text-sienna-deep text-sm">На сегодня записей нет.</p>
         )}
         <div className="flex flex-col gap-2">
           {(today.data ?? []).map((b) => (
@@ -56,7 +56,7 @@ export function AdminDashboardPage() {
                         minute: '2-digit',
                       })}
                     </div>
-                    <div className="text-sienna text-sm">
+                    <div className="text-sienna-deep text-sm">
                       {b.service_title ?? `Услуга #${b.service_id}`}
                       {' · '}
                       {b.staff_name ?? `Сотрудник #${b.staff_id}`}
@@ -75,9 +75,9 @@ export function AdminDashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-ink font-semibold">Статистика</div>
-              <div className="text-sienna text-xs">Выручка, топ услуг, экспорт CSV/XLSX</div>
+              <div className="text-sienna-deep text-xs">Выручка, топ услуг, экспорт CSV/XLSX</div>
             </div>
-            <span className="text-sienna text-xl">›</span>
+            <span className="text-sienna-deep text-xl">›</span>
           </div>
         </Card>
       </Link>
@@ -87,9 +87,9 @@ export function AdminDashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-ink font-semibold">Команда</div>
-              <div className="text-sienna text-xs">Участники и приглашения</div>
+              <div className="text-sienna-deep text-xs">Участники и приглашения</div>
             </div>
-            <span className="text-sienna text-xl">›</span>
+            <span className="text-sienna-deep text-xl">›</span>
           </div>
         </Card>
       </Link>
@@ -99,9 +99,9 @@ export function AdminDashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-ink font-semibold">Филиалы</div>
-              <div className="text-sienna text-xs">Адреса, часовые пояса, активные точки</div>
+              <div className="text-sienna-deep text-xs">Адреса, часовые пояса, активные точки</div>
             </div>
-            <span className="text-sienna text-xl">›</span>
+            <span className="text-sienna-deep text-xl">›</span>
           </div>
         </Card>
       </Link>
@@ -111,9 +111,9 @@ export function AdminDashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-ink font-semibold">Настройки бизнеса</div>
-              <div className="text-sienna text-xs">Имя, часовой пояс, шаг слотов, буфер</div>
+              <div className="text-sienna-deep text-xs">Имя, часовой пояс, шаг слотов, буфер</div>
             </div>
-            <span className="text-sienna text-xl">›</span>
+            <span className="text-sienna-deep text-xl">›</span>
           </div>
         </Card>
       </Link>

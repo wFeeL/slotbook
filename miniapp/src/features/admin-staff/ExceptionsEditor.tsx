@@ -81,7 +81,7 @@ export function ExceptionsEditor({ staffId }: ExceptionsEditorProps) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-2">
         {(list.data ?? []).length === 0 && (
-          <p className="text-sienna text-sm">Нет исключений.</p>
+          <p className="text-sienna-deep text-sm">Нет исключений.</p>
         )}
         {(list.data ?? []).map((ex: ScheduleExceptionRead) => (
           <Card key={ex.id} surface="shell">
@@ -90,7 +90,7 @@ export function ExceptionsEditor({ staffId }: ExceptionsEditorProps) {
                 <div className="text-ink font-semibold">
                   {ex.date} · {ex.type === 'day_off' ? 'Выходной' : `${ex.start_time?.slice(0, 5)}–${ex.end_time?.slice(0, 5)}`}
                 </div>
-                {ex.reason && <div className="text-sienna text-sm">{ex.reason}</div>}
+                {ex.reason && <div className="text-sienna-deep text-sm">{ex.reason}</div>}
               </div>
               <Button variant="ghost" onClick={() => remove(ex.id)}>
                 Удалить

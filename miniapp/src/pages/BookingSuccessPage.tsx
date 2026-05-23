@@ -72,7 +72,7 @@ export function BookingSuccessPage() {
         <h1 className="text-display text-ink font-display">
           Готово <span className="text-rose">✦</span>
         </h1>
-        <p className="text-sienna text-base">
+        <p className="text-sienna-deep text-base">
           Запись №{bookingId} подтверждена. Мы напомним вам перед встречей.
         </p>
 

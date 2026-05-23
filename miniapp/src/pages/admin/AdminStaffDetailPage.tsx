@@ -37,7 +37,7 @@ export function AdminStaffDetailPage() {
     return <Skeleton height={120} />;
   }
   if (!staff) {
-    return <p className="text-sienna">Сотрудник не найден.</p>;
+    return <p className="text-sienna-deep">Сотрудник не найден.</p>;
   }
 
   async function saveProfile(values: StaffFormValues) {
@@ -88,7 +88,7 @@ export function AdminStaffDetailPage() {
             onClick={() => setTab(t.id)}
             className={cn(
               'rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition',
-              tab === t.id ? 'bg-rose text-shell' : 'bg-shell text-sienna border border-sand',
+              tab === t.id ? 'bg-rose text-shell' : 'bg-shell text-sienna-deep border border-sand',
             )}
           >
             {t.label}

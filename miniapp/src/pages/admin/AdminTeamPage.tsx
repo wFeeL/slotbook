@@ -41,9 +41,9 @@ export function AdminTeamPage() {
       {q.data && (
         <>
           <section className="flex flex-col gap-2">
-            <h3 className="text-sienna text-xs uppercase tracking-wide">Участники</h3>
+            <h3 className="text-sienna-deep text-xs uppercase tracking-wide">Участники</h3>
             {q.data.members.length === 0 && (
-              <p className="text-sienna text-sm">Пока пусто.</p>
+              <p className="text-sienna-deep text-sm">Пока пусто.</p>
             )}
             {q.data.members.map((m) => (
               <Card key={m.id} surface="shell">
@@ -52,10 +52,10 @@ export function AdminTeamPage() {
                     <div className="text-ink font-semibold">
                       {m.first_name ?? '—'} {m.last_name ?? ''}
                       {m.username && (
-                        <span className="text-sienna text-sm"> @{m.username}</span>
+                        <span className="text-sienna-deep text-sm"> @{m.username}</span>
                       )}
                     </div>
-                    <div className="text-sienna text-xs">
+                    <div className="text-sienna-deep text-xs">
                       TG: {m.telegram_id} · с {fmtDate(m.created_at)}
                     </div>
                   </div>
@@ -71,7 +71,7 @@ export function AdminTeamPage() {
 
           {q.data.invites.length > 0 && (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sienna text-xs uppercase tracking-wide">
+              <h3 className="text-sienna-deep text-xs uppercase tracking-wide">
                 Активные приглашения
               </h3>
               {q.data.invites.map((i) => (
@@ -79,10 +79,10 @@ export function AdminTeamPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-ink font-semibold">{i.role}</div>
-                      <div className="text-sienna text-xs">
+                      <div className="text-sienna-deep text-xs">
                         истекает {fmtDate(i.expires_at)}
                       </div>
-                      <div className="text-sienna text-xs truncate">{i.url}</div>
+                      <div className="text-sienna-deep text-xs truncate">{i.url}</div>
                     </div>
                     <Button variant="ghost" onClick={() => handleRevoke(i.id)}>
                       Отозвать

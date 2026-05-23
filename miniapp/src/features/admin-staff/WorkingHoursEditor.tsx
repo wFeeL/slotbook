@@ -50,7 +50,7 @@ export function WorkingHoursEditor({ initial, onSave, saving }: WorkingHoursEdit
             !row.is_active && 'opacity-50',
           )}
         >
-          <div className="w-8 text-sienna text-sm font-semibold">{WEEKDAYS[row.weekday]}</div>
+          <div className="w-8 text-sienna-deep text-sm font-semibold">{WEEKDAYS[row.weekday]}</div>
           <Toggle checked={row.is_active} onChange={(v) => update(i, { is_active: v })} />
           <input
             type="time"
@@ -59,7 +59,7 @@ export function WorkingHoursEditor({ initial, onSave, saving }: WorkingHoursEdit
             disabled={!row.is_active}
             className="flex-1 rounded-xl border border-sand bg-cream px-2 py-1.5 text-ink text-sm"
           />
-          <span className="text-sienna">–</span>
+          <span className="text-sienna-deep">–</span>
           <input
             type="time"
             value={normalizeTime(row.end_time)}

@@ -27,13 +27,13 @@ export function BookingDetailPage() {
   const member = staff.data?.find((s) => s.id === booking?.staff_id);
 
   if (bookings.isLoading) {
-    return <div className="p-6 text-sienna">Загружаем...</div>;
+    return <div className="p-6 text-sienna-deep">Загружаем...</div>;
   }
 
   if (!booking) {
     return (
       <div className="p-6 flex flex-col gap-4">
-        <p className="text-sienna">Запись не найдена.</p>
+        <p className="text-sienna-deep">Запись не найдена.</p>
         <Button onClick={() => navigate('/my-bookings')}>К списку</Button>
       </div>
     );
@@ -55,7 +55,7 @@ export function BookingDetailPage() {
         style={{ animation: 'fade-up 320ms ease-out both' }}
       >
         <header className="mb-6">
-          <span className="text-sienna text-sm font-semibold uppercase">
+          <span className="text-sienna-deep text-sm font-semibold uppercase">
             Запись № {booking.id}
           </span>
           <h1 className="text-2xl text-ink font-display mt-1">
@@ -63,7 +63,7 @@ export function BookingDetailPage() {
               formatLocalWeekday(booking.starts_at).slice(1)}
             , {formatLocalDate(booking.starts_at)}
           </h1>
-          <p className="text-sienna text-base mt-2 tabular-nums">
+          <p className="text-sienna-deep text-base mt-2 tabular-nums">
             {formatLocalTime(booking.starts_at)}
           </p>
         </header>
@@ -99,7 +99,7 @@ export function BookingDetailPage() {
         )}
 
         {!isActive && (
-          <p className="text-sienna text-sm text-center mt-4">
+          <p className="text-sienna-deep text-sm text-center mt-4">
             Эта запись больше не активна.
           </p>
         )}
@@ -111,7 +111,7 @@ export function BookingDetailPage() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 items-baseline">
-      <dt className="text-sienna text-sm">{label}</dt>
+      <dt className="text-sienna-deep text-sm">{label}</dt>
       <dd className="text-ink font-semibold text-right break-words max-w-[60%]">{value}</dd>
     </div>
   );

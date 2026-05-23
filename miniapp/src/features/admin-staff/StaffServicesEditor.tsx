@@ -56,7 +56,7 @@ export function StaffServicesEditor({ staffId }: StaffServicesEditorProps) {
         <div key={s.id} className="flex items-center justify-between rounded-2xl bg-shell border border-sand px-4 py-3">
           <div className="flex-1">
             <div className="text-ink">{s.title}</div>
-            <div className="text-sienna text-xs">{s.duration_minutes} мин</div>
+            <div className="text-sienna-deep text-xs">{s.duration_minutes} мин</div>
           </div>
           <Toggle checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
         </div>

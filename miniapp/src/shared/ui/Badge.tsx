@@ -12,7 +12,7 @@ interface BadgeProps {
 const toneClass: Record<Tone, string> = {
   sage: 'bg-sage/20 text-sage',
   clay: 'bg-clay/20 text-clay',
-  sienna: 'bg-sienna/20 text-sienna',
+  sienna: 'bg-sienna/20 text-sienna-deep',
   rose: 'bg-rose/20 text-rose-deep',
   sand: 'bg-sand text-ink',
 };

@@ -55,7 +55,7 @@ export function AdminBookingDetailPage() {
   }, [detail.data]);
 
   if (detail.isLoading) return <Skeleton height={160} />;
-  if (!detail.data) return <p className="text-sienna">Запись не найдена.</p>;
+  if (!detail.data) return <p className="text-sienna-deep">Запись не найдена.</p>;
   const b = detail.data;
 
   async function setStatus(status: 'completed' | 'no_show') {
@@ -140,12 +140,12 @@ export function AdminBookingDetailPage() {
                 minute: '2-digit',
               })}
             </div>
-            <div className="text-sienna text-sm mt-1">
+            <div className="text-sienna-deep text-sm mt-1">
               {b.service_title ?? `Услуга #${b.service_id}`}
               {' · '}
               {b.staff_name ?? `Сотрудник #${b.staff_id}`}
             </div>
-            <div className="text-sienna text-xs mt-0.5">
+            <div className="text-sienna-deep text-xs mt-0.5">
               Клиент: {b.client_first_name ?? `#${b.client_id}`}
               {b.client_last_name ? ` ${b.client_last_name}` : ''}
               {b.client_telegram_id ? ` · TG ${b.client_telegram_id}` : ''}

@@ -42,7 +42,7 @@ export function AdminBookingsPage() {
 
       {q.isLoading && <Skeleton height={80} />}
       {!q.isLoading && (q.data ?? []).length === 0 && (
-        <p className="text-sienna text-sm">Нет записей по выбранным фильтрам.</p>
+        <p className="text-sienna-deep text-sm">Нет записей по выбранным фильтрам.</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -59,13 +59,13 @@ export function AdminBookingsPage() {
                       minute: '2-digit',
                     })}
                   </div>
-                  <div className="text-sienna text-sm">
+                  <div className="text-sienna-deep text-sm">
                     {b.service_title ?? `Услуга #${b.service_id}`}
                     {' · '}
                     {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                   </div>
                   {b.client_first_name && (
-                    <div className="text-sienna text-xs mt-0.5">
+                    <div className="text-sienna-deep text-xs mt-0.5">
                       {b.client_first_name}
                       {b.client_last_name ? ` ${b.client_last_name}` : ''}
                     </div>
