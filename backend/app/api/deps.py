@@ -9,7 +9,9 @@ from app.core.config import Settings, get_settings
 from app.core.errors import Forbidden, InvalidToken
 from app.core.security import decode_jwt
 from app.db.enums import UserRole
+from app.db.models.staff import StaffMember
 from app.db.models.user import User
+from app.db.repositories.staff import StaffRepo
 from app.db.repositories.users import UsersRepo
 from app.db.session import get_session
 
@@ -50,3 +52,13 @@ async def get_admin_user(user: CurrentUser) -> User:
 
 
 AdminUser = Annotated[User, Depends(get_admin_user)]
+
+
+async def get_linked_staff(user: CurrentUser, session: SessionDep) -> StaffMember:
+    staff = await StaffRepo(session).get_active_by_user_id(user.id)
+    if staff is None:
+        raise Forbidden("Учётная запись не связана с активным мастером")
+    return staff
+
+
+LinkedStaff = Annotated[StaffMember, Depends(get_linked_staff)]

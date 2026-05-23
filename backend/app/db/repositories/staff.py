@@ -67,3 +67,10 @@ class StaffRepo:
     async def list_service_ids(self, staff_id: int) -> list[int]:
         stmt = select(StaffService.service_id).where(StaffService.staff_id == staff_id)
         return list((await self.session.execute(stmt)).scalars().all())
+
+    async def get_active_by_user_id(self, user_id: int) -> StaffMember | None:
+        stmt = select(StaffMember).where(
+            StaffMember.user_id == user_id,
+            StaffMember.is_active.is_(True),
+        )
+        return (await self.session.execute(stmt)).scalar_one_or_none()
