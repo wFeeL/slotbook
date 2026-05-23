@@ -98,6 +98,17 @@ async def db_engine():  # type: ignore[no-untyped-def]
                 "WHERE status IN ('pending', 'confirmed')"
             )
         )
+        # Apply the EXCLUDE constraint that mirrors alembic migration 0009 so race
+        # tests that depend on it see the same behaviour as production.
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS btree_gist"))
+        await conn.execute(
+            text(
+                "ALTER TABLE bookings ADD CONSTRAINT bookings_no_overlap "
+                "EXCLUDE USING gist ("
+                "staff_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&"
+                ") WHERE (status IN ('pending', 'confirmed'))"
+            )
+        )
     yield engine
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
