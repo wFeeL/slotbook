@@ -27,6 +27,17 @@ services:
     volumes:
       - ./backend:/app
 
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uv run python main_worker.py
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+
   postgres:
     image: postgres:16
     environment:
