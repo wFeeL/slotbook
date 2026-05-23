@@ -186,3 +186,98 @@ async def test_statistics_filter_by_staff_id(
     assert data_b["completed_count"] == 2
     assert len(data_b["top_staff"]) == 1
     assert data_b["top_staff"][0]["staff_id"] == staff_b.id
+
+
+@pytest.mark.asyncio
+async def test_export_bookings_csv_returns_header_and_rows(
+    client, db_session, business, client_user, admin_user, settings
+) -> None:
+    svc = Service(
+        business_id=business.id,
+        title="Spa",
+        duration_minutes=60,
+        price=Decimal("200.00"),
+    )
+    staff = StaffMember(business_id=business.id, name="Carol")
+    db_session.add_all([svc, staff])
+    await db_session.flush()
+
+    base = datetime.now(UTC) - timedelta(days=1)
+    db_session.add(
+        Booking(
+            business_id=business.id,
+            client_id=client_user.id,
+            staff_id=staff.id,
+            service_id=svc.id,
+            starts_at=base + timedelta(hours=1),
+            ends_at=base + timedelta(hours=2),
+            status=BookingStatus.COMPLETED,
+            source=BookingSource.MINI_APP,
+            client_comment="please call",
+        )
+    )
+    await db_session.commit()
+
+    resp = await client.get(
+        "/api/v1/admin/exports/bookings.csv",
+        headers=auth_headers(admin_user, settings),
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.headers["content-type"].startswith("text/csv")
+    assert "attachment" in resp.headers["content-disposition"]
+
+    text = resp.text
+    lines = [line for line in text.splitlines() if line.strip()]
+    # Header + at least one body row
+    assert len(lines) >= 2
+    header = lines[0].split(",")
+    assert "id" in header
+    assert "status" in header
+    assert "service_title" in header
+    # Body row contains seeded data
+    body_blob = "\n".join(lines[1:])
+    assert "Spa" in body_blob
+    assert "Carol" in body_blob
+
+
+@pytest.mark.asyncio
+async def test_export_bookings_xlsx_returns_correct_mime(
+    client, db_session, business, client_user, admin_user, settings
+) -> None:
+    svc = Service(
+        business_id=business.id,
+        title="Mani",
+        duration_minutes=30,
+        price=Decimal("75.00"),
+    )
+    staff = StaffMember(business_id=business.id, name="Dora")
+    db_session.add_all([svc, staff])
+    await db_session.flush()
+
+    base = datetime.now(UTC) - timedelta(days=1)
+    db_session.add(
+        Booking(
+            business_id=business.id,
+            client_id=client_user.id,
+            staff_id=staff.id,
+            service_id=svc.id,
+            starts_at=base + timedelta(hours=1),
+            ends_at=base + timedelta(hours=2),
+            status=BookingStatus.COMPLETED,
+            source=BookingSource.MINI_APP,
+        )
+    )
+    await db_session.commit()
+
+    resp = await client.get(
+        "/api/v1/admin/exports/bookings.xlsx",
+        headers=auth_headers(admin_user, settings),
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.headers["content-type"] == (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert "attachment" in resp.headers["content-disposition"]
+    # XLSX files are ZIPs and start with PK signature
+    assert resp.content[:2] == b"PK"
+    assert len(resp.content) > 0

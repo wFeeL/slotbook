@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Query, Request, status
+from fastapi import APIRouter, Query, Request, Response, status
 
 from app.api.deps import AdminUser, SessionDep
 from app.core.errors import CannotCancelInCurrentStatus, NotFound
@@ -46,6 +46,7 @@ from app.schemas.staff import (
     StaffUpdate,
 )
 from app.schemas.statistics import StatisticsPeriod, StatisticsResponse
+from app.services import export_service
 from app.services.booking_service import BookingService
 from app.services.notification_service import NotificationService
 from app.services.statistics_service import StatisticsService
@@ -497,3 +498,41 @@ async def admin_statistics(
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
     return await StatisticsService(session).collect(business.id, period, staff_id=staff_id)
+
+
+@router.get("/exports/bookings.csv")
+async def export_bookings_csv(
+    _admin: AdminUser,
+    session: SessionDep,
+    date_from: Annotated[date | None, Query(alias="from")] = None,
+    date_to: Annotated[date | None, Query(alias="to")] = None,
+    staff_id: int | None = None,
+) -> Response:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    body = await export_service.to_csv(session, business.id, date_from, date_to, staff_id)
+    filename = f"slotbook-bookings-{datetime.now(UTC).strftime('%Y%m%d')}.csv"
+    return Response(
+        content=body,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/exports/bookings.xlsx")
+async def export_bookings_xlsx(
+    _admin: AdminUser,
+    session: SessionDep,
+    date_from: Annotated[date | None, Query(alias="from")] = None,
+    date_to: Annotated[date | None, Query(alias="to")] = None,
+    staff_id: int | None = None,
+) -> Response:
+    business = await BusinessesRepo(session).get_singleton()
+    assert business is not None
+    body = await export_service.to_xlsx(session, business.id, date_from, date_to, staff_id)
+    filename = f"slotbook-bookings-{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
+    return Response(
+        content=body,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
