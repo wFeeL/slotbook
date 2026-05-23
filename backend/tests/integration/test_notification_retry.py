@@ -65,7 +65,7 @@ async def world(db_session):
 
 
 async def test_first_failure_increments_retry_count(db_session, world):
-    biz, client, service, staff, booking = world
+    _biz, client, _service, _staff, booking = world
     n = Notification(
         booking_id=booking.id,
         user_id=client.id,
@@ -86,7 +86,7 @@ async def test_first_failure_increments_retry_count(db_session, world):
 
 
 async def test_max_retries_marks_failed(db_session, world):
-    biz, client, service, staff, booking = world
+    _biz, client, _service, _staff, booking = world
     n = Notification(
         booking_id=booking.id,
         user_id=client.id,
