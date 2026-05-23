@@ -43,6 +43,8 @@ class StaffBookingRead(BaseModel):
     service_price: str | None
     client_first_name: str | None
     client_last_name: str | None
+    client_phone: str | None
+    client_username: str | None
     client_comment: str | None
     admin_comment: str | None
 

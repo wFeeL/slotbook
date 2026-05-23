@@ -275,6 +275,8 @@ export const StaffBookingReadSchema = z.object({
   service_price: z.string().nullable(),
   client_first_name: z.string().nullable(),
   client_last_name: z.string().nullable(),
+  client_phone: z.string().nullable(),
+  client_username: z.string().nullable(),
   client_comment: z.string().nullable(),
   admin_comment: z.string().nullable(),
 });

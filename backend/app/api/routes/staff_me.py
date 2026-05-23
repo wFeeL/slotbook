@@ -84,6 +84,8 @@ def _booking_to_read(
         service_price=str(service.price) if service and service.price is not None else None,
         client_first_name=client.first_name if client else None,
         client_last_name=client.last_name if client else None,
+        client_phone=client.phone if client else None,
+        client_username=client.username if client else None,
         client_comment=booking.client_comment,
         admin_comment=booking.admin_comment,
     )

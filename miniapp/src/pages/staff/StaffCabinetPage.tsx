@@ -179,7 +179,16 @@ export function StaffCabinetPage() {
                 <div className="text-ink">{b.service_title}</div>
                 <div className="text-sienna-deep text-sm">
                   {b.client_first_name ?? 'Клиент'}
+                  {b.client_username && ` · @${b.client_username}`}
                 </div>
+                {b.client_phone && (
+                  <a
+                    href={`tel:${b.client_phone}`}
+                    className="text-rose text-sm font-semibold"
+                  >
+                    📞 {b.client_phone}
+                  </a>
+                )}
                 {b.client_comment && (
                   <div className="text-sienna-deep text-sm italic">
                     «{b.client_comment}»
