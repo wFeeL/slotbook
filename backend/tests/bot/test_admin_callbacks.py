@@ -66,6 +66,10 @@ async def test_admin_cancels_booking(
         await db_session.execute(select(Booking).where(Booking.id == booking_id))
     ).scalar_one()
     assert refreshed.status == BookingStatus.CANCELLED_BY_ADMIN
+    # Notifications must have been dispatched (B2 fix). The mock bot should
+    # have been used to send at least one message (BOOKING_CANCELLED_CLIENT
+    # and/or BOOKING_CANCELLED_ADMIN).
+    assert mock_bot.send_message.await_count >= 1
 
 
 @pytest.mark.asyncio

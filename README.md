@@ -61,7 +61,7 @@ cd slot_book_bot
 cp backend/.env.example backend/.env
 # Edit backend/.env — at minimum: BOT_TOKEN, JWT_SECRET, BOT_ADMIN_TELEGRAM_IDS.
 
-docker compose up -d postgres redis
+docker compose up -d postgres
 cd backend
 uv sync --all-groups
 uv run alembic upgrade head

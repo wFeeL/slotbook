@@ -17,11 +17,19 @@ class NotificationsRepo:
         self.session.add(notification)
 
     async def list_pending_for_booking(self, booking_id: int) -> list[Notification]:
+        """Pending notifications for a booking that are ready for immediate dispatch.
+
+        Only returns rows with scheduled_at IS NULL — these are the
+        BOOKING_CREATED_* and BOOKING_CANCELLED_* notifications that fire
+        synchronously. Reminders (REMINDER_24H, REMINDER_2H) have a
+        scheduled_at and are dispatched by the worker (list_pending_due).
+        """
         stmt = (
             select(Notification)
             .where(
                 Notification.booking_id == booking_id,
                 Notification.notification_status == NotificationStatus.PENDING,
+                Notification.scheduled_at.is_(None),
             )
             .order_by(Notification.id)
         )

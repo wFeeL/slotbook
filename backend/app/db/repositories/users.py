@@ -49,7 +49,11 @@ class UsersRepo:
         user.last_name = last_name
         user.username = username
         user.last_seen_at = now
-        if telegram_id in admin_telegram_ids and user.role != UserRole.ADMIN:
+        # Promote CLIENTs to ADMIN if their Telegram ID is in the admin allowlist.
+        # Never touch existing ADMINs or SUPERADMINs — in particular, a SUPERADMIN
+        # whose telegram_id happens to be in BOT_ADMIN_TELEGRAM_IDS must NOT be
+        # downgraded to ADMIN on the next login.
+        if telegram_id in admin_telegram_ids and user.role == UserRole.CLIENT:
             user.role = UserRole.ADMIN
         await self.session.flush()
         return user

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.texts import render
 from app.core.config import get_settings
 from app.db.enums import NotificationStatus
+from app.db.models.notification import Notification
 from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.db.repositories.notifications import NotificationsRepo
@@ -28,7 +29,19 @@ class NotificationService:
         self.bot = bot
 
     async def dispatch_pending_for_booking(self, booking_id: int) -> None:
+        """Dispatch immediate (scheduled_at IS NULL) pending notifications for a booking."""
         notifications = await NotificationsRepo(self.session).list_pending_for_booking(booking_id)
+        await self._dispatch_notifications(booking_id, notifications)
+
+    async def dispatch_notifications(
+        self, booking_id: int, notifications: list[Notification]
+    ) -> None:
+        """Dispatch the given pending notifications for a booking. Used by the worker."""
+        await self._dispatch_notifications(booking_id, notifications)
+
+    async def _dispatch_notifications(
+        self, booking_id: int, notifications: list[Notification]
+    ) -> None:
         if not notifications:
             return
 

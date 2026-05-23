@@ -14,6 +14,7 @@ from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
 from app.db.models.user import User
+from app.db.repositories.audit import AuditRepo
 from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
@@ -264,11 +265,19 @@ async def admin_patch_booking(
     if body.admin_comment is not None:
         booking.admin_comment = body.admin_comment
 
+    previous_status = booking.status.value
     if body.status is not None:
         allowed = {BookingStatus.COMPLETED, BookingStatus.NO_SHOW}
         if body.status not in allowed:
             raise CannotCancelInCurrentStatus("Use the dedicated cancel endpoint for cancellation")
         booking.status = body.status
+        AuditRepo(session).log(
+            actor_user_id=admin.id,
+            action=f"booking_status_{body.status.value}",
+            entity_type="booking",
+            entity_id=booking.id,
+            metadata={"previous_status": previous_status},
+        )
 
     await session.commit()
     await session.refresh(booking)

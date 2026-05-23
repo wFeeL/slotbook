@@ -74,8 +74,13 @@ class BookingService:
         return False
 
     async def _admin_user_ids(self, _business_id: int) -> list[int]:
-        """All admin users system-wide. Multi-tenant scoping will be added later."""
-        stmt = select(User.id).where(User.role == UserRole.ADMIN)
+        """All admin (and superadmin) users system-wide.
+
+        Multi-tenant scoping will be added later. SUPERADMINs must receive
+        admin-targeted notifications too — otherwise they miss BOOKING_CREATED_ADMIN
+        and BOOKING_CANCELLED_ADMIN events for bookings they ought to oversee.
+        """
+        stmt = select(User.id).where(User.role.in_([UserRole.ADMIN, UserRole.SUPERADMIN]))
         return list((await self.session.execute(stmt)).scalars().all())
 
     # ------------------------------------------------------------------
