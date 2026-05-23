@@ -22,6 +22,14 @@ import {
   StaffReadSchema,
   type StaffReadWithServices,
   StaffReadWithServicesSchema,
+  StaffMeResponseSchema,
+  type StaffMeResponse,
+  StaffBookingReadSchema,
+  type StaffBookingRead,
+  StaffScheduleResponseSchema,
+  type StaffScheduleResponse,
+  UserBriefSchema,
+  type UserBrief,
   StatisticsResponseSchema,
   type StatisticsResponse,
   type StatisticsPeriodT,
@@ -254,6 +262,7 @@ export const api = {
           name: string;
           description: string | null;
           is_active: boolean;
+          user_id: number | null;
         }>,
       ): Promise<StaffRead> {
         return request(
@@ -376,6 +385,28 @@ export const api = {
         );
       },
     },
+    users: {
+      list(
+        params: {
+          role?: 'staff' | 'admin' | 'client' | 'superadmin';
+          linkable_only?: boolean;
+          include_user_id?: number;
+        } = {},
+      ): Promise<UserBrief[]> {
+        const qs = new URLSearchParams();
+        if (params.role) qs.set('role', params.role);
+        if (params.linkable_only) qs.set('linkable_only', 'true');
+        if (params.include_user_id !== undefined) {
+          qs.set('include_user_id', String(params.include_user_id));
+        }
+        const tail = qs.toString() ? `?${qs}` : '';
+        return request(
+          `/api/v1/admin/users${tail}`,
+          { method: 'GET' },
+          z.array(UserBriefSchema),
+        );
+      },
+    },
     team: {
       get(): Promise<TeamResponse> {
         return request('/api/v1/admin/team', { method: 'GET' }, TeamResponseSchema);
@@ -395,6 +426,44 @@ export const api = {
           () => undefined,
         );
       },
+    },
+  },
+  staffMe: {
+    profile(): Promise<StaffMeResponse> {
+      return request('/api/v1/staff/me', { method: 'GET' }, StaffMeResponseSchema);
+    },
+    bookings(
+      params: { date?: string; from?: string; to?: string; status?: string } = {},
+    ): Promise<StaffBookingRead[]> {
+      const qs = new URLSearchParams();
+      if (params.date) qs.set('date', params.date);
+      if (params.from) qs.set('from', params.from);
+      if (params.to) qs.set('to', params.to);
+      if (params.status) qs.set('status', params.status);
+      const tail = qs.toString() ? `?${qs}` : '';
+      return request(
+        `/api/v1/staff/me/bookings${tail}`,
+        { method: 'GET' },
+        z.array(StaffBookingReadSchema),
+      );
+    },
+    patchBooking(
+      id: number,
+      body: { status?: 'completed' | 'no_show'; admin_comment?: string | null },
+    ): Promise<StaffBookingRead> {
+      return request(
+        `/api/v1/staff/me/bookings/${id}`,
+        { method: 'PATCH', body: JSON.stringify(body) },
+        StaffBookingReadSchema,
+      );
+    },
+    schedule(weekStart?: string): Promise<StaffScheduleResponse> {
+      const tail = weekStart ? `?week_start=${weekStart}` : '';
+      return request(
+        `/api/v1/staff/me/schedule${tail}`,
+        { method: 'GET' },
+        StaffScheduleResponseSchema,
+      );
     },
   },
 };

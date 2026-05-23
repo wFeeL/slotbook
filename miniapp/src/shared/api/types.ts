@@ -46,6 +46,7 @@ export type ServiceRead = z.infer<typeof ServiceReadSchema>;
 export const StaffReadSchema = z.object({
   id: z.number(),
   branch_id: z.number(),
+  user_id: z.number().nullable().optional(),
   name: z.string(),
   description: z.string().nullable(),
   is_active: z.boolean(),
@@ -155,6 +156,7 @@ export type DashboardResponse = z.infer<typeof DashboardResponseSchema>;
 export const StaffReadWithServicesSchema = z.object({
   id: z.number(),
   branch_id: z.number(),
+  user_id: z.number().nullable().optional(),
   name: z.string(),
   description: z.string().nullable(),
   is_active: z.boolean(),
@@ -233,3 +235,92 @@ export const StatisticsResponseSchema = z.object({
   ),
 });
 export type StatisticsResponse = z.infer<typeof StatisticsResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Staff cabinet (sub-project 13)
+// ---------------------------------------------------------------------------
+
+export const StaffMeStaffSchema = z.object({
+  id: z.number(),
+  branch_id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  is_active: z.boolean(),
+});
+export type StaffMeStaff = z.infer<typeof StaffMeStaffSchema>;
+
+export const StaffMeBranchSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  timezone: z.string(),
+});
+export type StaffMeBranch = z.infer<typeof StaffMeBranchSchema>;
+
+export const StaffMeResponseSchema = z.object({
+  linked: z.boolean(),
+  staff: StaffMeStaffSchema.nullable(),
+  branch: StaffMeBranchSchema.nullable(),
+  business_timezone: z.string(),
+});
+export type StaffMeResponse = z.infer<typeof StaffMeResponseSchema>;
+
+export const StaffBookingReadSchema = z.object({
+  id: z.number(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+  status: BookingStatusSchema,
+  service_id: z.number(),
+  service_title: z.string(),
+  service_duration_minutes: z.number(),
+  service_price: z.string().nullable(),
+  client_first_name: z.string().nullable(),
+  client_last_name: z.string().nullable(),
+  client_comment: z.string().nullable(),
+  admin_comment: z.string().nullable(),
+});
+export type StaffBookingRead = z.infer<typeof StaffBookingReadSchema>;
+
+export const StaffScheduleIntervalSchema = z.object({
+  start_time: z.string(),
+  end_time: z.string(),
+});
+export const StaffScheduleExceptionSchema = z.object({
+  id: z.number(),
+  date: z.string(),
+  type: z.enum(['day_off', 'extra_working_time', 'blocked_time']),
+  start_time: z.string().nullable(),
+  end_time: z.string().nullable(),
+  reason: z.string().nullable(),
+});
+export const StaffScheduleBookingSchema = z.object({
+  id: z.number(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+  service_title: z.string(),
+  client_first_name: z.string().nullable(),
+  status: BookingStatusSchema,
+});
+export const StaffScheduleDaySchema = z.object({
+  date: z.string(),
+  weekday: z.number(),
+  working_intervals: z.array(StaffScheduleIntervalSchema),
+  exceptions: z.array(StaffScheduleExceptionSchema),
+  bookings: z.array(StaffScheduleBookingSchema),
+});
+export const StaffScheduleResponseSchema = z.object({
+  week_start: z.string(),
+  business_timezone: z.string(),
+  days: z.array(StaffScheduleDaySchema),
+});
+export type StaffScheduleResponse = z.infer<typeof StaffScheduleResponseSchema>;
+export type StaffScheduleDay = z.infer<typeof StaffScheduleDaySchema>;
+
+export const UserBriefSchema = z.object({
+  id: z.number(),
+  telegram_id: z.number(),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  username: z.string().nullable(),
+  role: UserRoleSchema,
+});
+export type UserBrief = z.infer<typeof UserBriefSchema>;
