@@ -132,6 +132,28 @@ export function StaffCabinetPage() {
     }
   }
 
+  if (me.data && !me.data.linked) {
+    return (
+      <div className="pt-2 pb-6 px-5 max-w-md mx-auto flex flex-col gap-4">
+        <header className="flex flex-col gap-1">
+          <button
+            type="button"
+            className="self-start text-sienna-deep text-sm"
+            onClick={() => navigate('/')}
+          >
+            ← На главную
+          </button>
+          <h1 className="text-xl text-ink font-display">Кабинет мастера</h1>
+        </header>
+        <EmptyState
+          title="Кабинет ещё не настроен"
+          description="Ваш аккаунт получил роль сотрудника, но администратор пока не связал его с записью мастера в каталоге. Передайте админу ваш Telegram username — он сделает связь в админ-панели за пару секунд."
+          glyph="leaf"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="pt-2 pb-6 px-5 max-w-md mx-auto flex flex-col gap-4">
       <header className="flex flex-col gap-1">

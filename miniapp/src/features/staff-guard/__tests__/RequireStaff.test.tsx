@@ -50,7 +50,7 @@ describe('RequireStaff', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('redirects to / when not linked', () => {
+  it('allows staff role even when not linked (cabinet shows setup-pending state)', () => {
     setUser();
     useAuthStore.setState({
       staffMe: {
@@ -61,9 +61,7 @@ describe('RequireStaff', () => {
       },
     });
     render(<Harness />);
-    expect(screen.getByText('home')).toBeInTheDocument();
-    expect(useToastStore.getState().toasts).toHaveLength(1);
-    expect(useToastStore.getState().toasts[0].tone).toBe('error');
+    expect(screen.getByText('cabinet')).toBeInTheDocument();
   });
 
   it('renders children when linked', () => {
@@ -78,5 +76,22 @@ describe('RequireStaff', () => {
     });
     render(<Harness />);
     expect(screen.getByText('cabinet')).toBeInTheDocument();
+  });
+
+  it('redirects to / when user is plain client', () => {
+    useAuthStore.setState({
+      token: 't',
+      user: {
+        id: 2,
+        telegram_id: 2,
+        first_name: null,
+        last_name: null,
+        username: null,
+        role: 'client',
+      },
+      staffMe: { linked: false, staff: null, branch: null, business_timezone: 'UTC' },
+    });
+    render(<Harness />);
+    expect(screen.getByText('home')).toBeInTheDocument();
   });
 });

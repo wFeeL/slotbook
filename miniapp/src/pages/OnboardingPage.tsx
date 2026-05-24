@@ -9,9 +9,11 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const { firstName } = useAuth();
   const role = useAuthStore((s) => s.user?.role);
-  const staffMe = useAuthStore((s) => s.staffMe);
   const isAdmin = role === 'admin' || role === 'superadmin';
-  const isStaff = staffMe?.linked === true;
+  // Show "Кабинет мастера" CTA to anyone with role=staff — even if admin hasn't
+  // linked them to a StaffMember yet. The cabinet shows a friendly "not set up"
+  // state in that case so the user is not silently blocked.
+  const isStaff = role === 'staff';
   const businessName = import.meta.env.VITE_BUSINESS_NAME ?? 'SlotBook';
 
   return (
