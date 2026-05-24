@@ -101,8 +101,9 @@ async def test_client_reschedule_happy_path(
     assert abs(
         (reminder_24h_rows[0].scheduled_at - (new_starts_at - timedelta(hours=24))).total_seconds()
     ) < 2
+    # Short reminder defaults to T-1h (configurable via business.reminder_short_hours).
     assert abs(
-        (reminder_2h_rows[0].scheduled_at - (new_starts_at - timedelta(hours=2))).total_seconds()
+        (reminder_2h_rows[0].scheduled_at - (new_starts_at - timedelta(hours=1))).total_seconds()
     ) < 2
     assert NotificationType.BOOKING_RESCHEDULED_CLIENT in types
 
