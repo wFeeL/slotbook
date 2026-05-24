@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import { Card } from '@/shared/ui/Card';
 import { Skeleton } from '@/shared/ui/Skeleton';
 import { Badge } from '@/shared/ui/Badge';
-import { Button } from '@/shared/ui/Button';
 import { useAdminBookings } from '@/entities/admin-booking/api';
 import { useAdminStaff } from '@/entities/admin-staff/api';
 import { cn } from '@/shared/lib/cn';
