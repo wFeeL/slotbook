@@ -88,16 +88,138 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
   );
 }
 
-function Sparkline({ data }: { data: number[] }) {
+interface DailyPoint {
+  date: string; // YYYY-MM-DD
+  count: number;
+}
+
+function fmtDayShort(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+}
+
+/**
+ * Daily-volume line chart with Y/X axes.
+ *
+ * Layout (viewBox 320×140):
+ *   - 28px left padding for Y-axis labels
+ *   - 20px bottom padding for X-axis labels
+ *   - 8px top padding
+ *   - Right padding 4px
+ */
+function DailyChart({ data }: { data: DailyPoint[] }) {
   if (data.length === 0) return null;
-  const max = Math.max(...data, 1);
-  const W = 240;
-  const H = 40;
-  const step = W / Math.max(data.length - 1, 1);
-  const points = data.map((v, i) => `${i * step},${H - (v / max) * H}`).join(' ');
+
+  const W = 320;
+  const H = 140;
+  const PAD_L = 28;
+  const PAD_R = 4;
+  const PAD_T = 8;
+  const PAD_B = 22;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+
+  const max = Math.max(...data.map((d) => d.count), 1);
+  // Nice round Y-axis ticks: 0, max/2, max
+  const yTicks = [0, Math.ceil(max / 2), max];
+
+  const step = plotW / Math.max(data.length - 1, 1);
+  const xAt = (i: number) => PAD_L + i * step;
+  const yAt = (v: number) => PAD_T + plotH - (v / max) * plotH;
+
+  const linePoints = data.map((d, i) => `${xAt(i)},${yAt(d.count)}`).join(' ');
+  const areaPath =
+    `M${xAt(0)},${PAD_T + plotH} ` +
+    data.map((d, i) => `L${xAt(i)},${yAt(d.count)}`).join(' ') +
+    ` L${xAt(data.length - 1)},${PAD_T + plotH} Z`;
+
+  // X-axis label: every Nth point so labels don't overlap
+  const xLabelStep = Math.max(1, Math.ceil(data.length / 6));
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-10">
-      <polyline points={points} fill="none" stroke="var(--color-rose)" strokeWidth={2} />
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full h-36"
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      aria-label="График записей по дням"
+    >
+      {/* Y grid + labels */}
+      {yTicks.map((t) => {
+        const y = yAt(t);
+        return (
+          <g key={t}>
+            <line
+              x1={PAD_L}
+              x2={W - PAD_R}
+              y1={y}
+              y2={y}
+              stroke="var(--color-sand)"
+              strokeWidth={1}
+              strokeDasharray={t === 0 ? '' : '2 3'}
+              opacity={0.7}
+            />
+            <text
+              x={PAD_L - 6}
+              y={y + 3}
+              textAnchor="end"
+              fontSize={10}
+              fill="var(--color-sienna-deep)"
+            >
+              {t}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Area fill + line */}
+      <path d={areaPath} fill="var(--color-rose)" opacity={0.18} />
+      <polyline
+        points={linePoints}
+        fill="none"
+        stroke="var(--color-rose)"
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+
+      {/* Data points */}
+      {data.map((d, i) => (
+        <circle
+          key={d.date}
+          cx={xAt(i)}
+          cy={yAt(d.count)}
+          r={2.5}
+          fill="var(--color-rose)"
+        />
+      ))}
+
+      {/* X axis labels */}
+      {data.map((d, i) =>
+        i % xLabelStep === 0 || i === data.length - 1 ? (
+          <text
+            key={`x-${d.date}`}
+            x={xAt(i)}
+            y={H - 4}
+            textAnchor="middle"
+            fontSize={9}
+            fill="var(--color-sienna-deep)"
+          >
+            {fmtDayShort(d.date)}
+          </text>
+        ) : null,
+      )}
+
+      {/* Axis title (Y) */}
+      <text
+        x={4}
+        y={PAD_T + 2}
+        textAnchor="start"
+        fontSize={9}
+        fill="var(--color-sienna-deep)"
+      >
+        записей
+      </text>
     </svg>
   );
 }
@@ -203,8 +325,18 @@ export function AdminStatisticsPage() {
 
           {data.daily_volume.length > 0 && (
             <Card surface="shell">
-              <div className="text-sienna-deep text-xs uppercase mb-2">Записи по дням</div>
-              <Sparkline data={data.daily_volume.map((d) => d.bookings_count)} />
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sienna-deep text-xs uppercase">Записи по дням</div>
+                <div className="text-ink text-sm font-semibold">
+                  всего {data.daily_volume.reduce((sum, d) => sum + d.bookings_count, 0)}
+                </div>
+              </div>
+              <DailyChart
+                data={data.daily_volume.map((d) => ({
+                  date: d.date,
+                  count: d.bookings_count,
+                }))}
+              />
             </Card>
           )}
 
