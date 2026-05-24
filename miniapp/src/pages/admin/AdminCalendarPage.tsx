@@ -79,13 +79,23 @@ export function AdminCalendarPage() {
   return (
     <div className="pt-2 pb-6 flex flex-col gap-3">
       <header className="flex items-center justify-between gap-2">
-        <Button variant="ghost" size="md" onClick={() => shiftWeek(-1)}>
+        <button
+          type="button"
+          aria-label="Предыдущая неделя"
+          onClick={() => shiftWeek(-1)}
+          className="w-12 h-12 rounded-full bg-shell border border-sand text-ink text-2xl flex items-center justify-center active:scale-95 transition shadow-sm"
+        >
           ‹
-        </Button>
+        </button>
         <h2 className="text-xl text-ink font-display flex-1 text-center">{headerLabel}</h2>
-        <Button variant="ghost" size="md" onClick={() => shiftWeek(1)}>
+        <button
+          type="button"
+          aria-label="Следующая неделя"
+          onClick={() => shiftWeek(1)}
+          className="w-12 h-12 rounded-full bg-shell border border-sand text-ink text-2xl flex items-center justify-center active:scale-95 transition shadow-sm"
+        >
           ›
-        </Button>
+        </button>
       </header>
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">

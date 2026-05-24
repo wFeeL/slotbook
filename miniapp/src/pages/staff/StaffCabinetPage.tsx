@@ -270,13 +270,28 @@ export function StaffCabinetPage() {
       {tab === 'week' && (
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
-            <Button size="md" variant="secondary" onClick={() => shiftWeek(-7)}>
-              ← Назад
-            </Button>
-            <div className="text-sienna-deep text-sm">с {weekStart}</div>
-            <Button size="md" variant="secondary" onClick={() => shiftWeek(7)}>
-              Вперёд →
-            </Button>
+            <button
+              type="button"
+              aria-label="Предыдущая неделя"
+              onClick={() => shiftWeek(-7)}
+              className="w-12 h-12 rounded-full bg-shell border border-sand text-ink text-2xl flex items-center justify-center active:scale-95 transition shadow-sm"
+            >
+              ‹
+            </button>
+            <div className="text-sienna-deep text-sm font-semibold">
+              {new Date(weekStart).toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: 'long',
+              })}
+            </div>
+            <button
+              type="button"
+              aria-label="Следующая неделя"
+              onClick={() => shiftWeek(7)}
+              className="w-12 h-12 rounded-full bg-shell border border-sand text-ink text-2xl flex items-center justify-center active:scale-95 transition shadow-sm"
+            >
+              ›
+            </button>
           </div>
           {schedule.isLoading && <Skeleton height={200} />}
           {schedule.data?.days.map((day) => (
