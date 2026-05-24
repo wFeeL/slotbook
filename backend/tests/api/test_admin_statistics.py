@@ -239,7 +239,8 @@ async def test_export_bookings_csv_returns_header_and_rows(
     assert resp.headers["content-type"].startswith("text/csv")
     assert "attachment" in resp.headers["content-disposition"]
 
-    text = resp.text
+    # Body starts with UTF-8 BOM so Excel/Numbers detect encoding correctly.
+    text = resp.text.lstrip("﻿")
     lines = [line for line in text.splitlines() if line.strip()]
     # Header + at least one body row
     assert len(lines) >= 2

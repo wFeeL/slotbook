@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy import select
 
 from app.api.deps import AdminUser, SessionDep
@@ -652,10 +652,55 @@ async def admin_statistics(
     return await StatisticsService(session).collect(business.id, period, staff_id=staff_id)
 
 
+async def _resolve_admin_from_query_or_header(
+    session: SessionDep,
+    authorization: Annotated[str | None, Header()] = None,
+    token: Annotated[str | None, Query()] = None,
+) -> User:
+    """Same as AdminUser dep, but also accepts ?token= query param.
+
+    Needed for file-download endpoints opened in external browser (Telegram
+    WebApp.openLink) where we cannot attach the Authorization header.
+    """
+    from app.core.config import get_settings
+    from app.core.errors import Forbidden as _Forbidden
+    from app.core.errors import InvalidToken as _InvalidToken
+    from app.core.security import decode_jwt
+    from app.db.repositories.users import UsersRepo as _UsersRepo
+
+    raw: str | None = None
+    if authorization and authorization.lower().startswith("bearer "):
+        raw = authorization.split(" ", 1)[1].strip()
+    elif token:
+        raw = token.strip()
+    if not raw:
+        raise _InvalidToken("Authorization required")
+
+    settings = get_settings()
+    payload = decode_jwt(raw, secret=settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
+        raise _InvalidToken("Token missing subject")
+    try:
+        user_id = int(user_id_raw)
+    except (TypeError, ValueError) as exc:
+        raise _InvalidToken("Token subject malformed") from exc
+
+    user = await _UsersRepo(session).get_by_id(user_id)
+    if user is None:
+        raise _InvalidToken("User not found")
+    if user.role not in {UserRole.ADMIN, UserRole.SUPERADMIN}:
+        raise _Forbidden("Admin role required")
+    return user
+
+
+from fastapi import Header  # noqa: E402  (kept inline for clarity above)
+
+
 @router.get("/exports/bookings.csv")
 async def export_bookings_csv(
-    _admin: AdminUser,
     session: SessionDep,
+    _admin: Annotated[User, Depends(_resolve_admin_from_query_or_header)],
     date_from: Annotated[date | None, Query(alias="from")] = None,
     date_to: Annotated[date | None, Query(alias="to")] = None,
     staff_id: int | None = None,
@@ -666,15 +711,18 @@ async def export_bookings_csv(
     filename = f"slotbook-bookings-{datetime.now(UTC).strftime('%Y%m%d')}.csv"
     return Response(
         content=body,
-        media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
 @router.get("/exports/bookings.xlsx")
 async def export_bookings_xlsx(
-    _admin: AdminUser,
     session: SessionDep,
+    _admin: Annotated[User, Depends(_resolve_admin_from_query_or_header)],
     date_from: Annotated[date | None, Query(alias="from")] = None,
     date_to: Annotated[date | None, Query(alias="to")] = None,
     staff_id: int | None = None,
@@ -685,8 +733,13 @@ async def export_bookings_xlsx(
     filename = f"slotbook-bookings-{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
     return Response(
         content=body,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

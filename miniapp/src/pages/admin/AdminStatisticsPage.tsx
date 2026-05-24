@@ -20,8 +20,37 @@ const PERIODS: { value: StatisticsPeriodT; label: string }[] = [
   { value: '365d', label: 'Год' },
 ];
 
+function absoluteUrl(pathOrUrl: string): string {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${window.location.origin}${pathOrUrl}`;
+}
+
+/**
+ * Download an authenticated file. Strategy:
+ *
+ * 1. iOS in Telegram → call `Telegram.WebApp.openLink(absURL?token=JWT)`. Telegram
+ *    opens the URL in the system browser (Safari), which respects our
+ *    Content-Disposition: attachment header and shows the native download prompt.
+ * 2. Desktop / Android → fetch with Authorization header → blob → anchor click
+ *    with `download` attribute → defer revoke by 60s so the browser has time
+ *    to actually consume the blob.
+ */
 async function downloadAuthed(url: string, filename: string): Promise<void> {
   const token = getAuthToken();
+  const tg = getWebApp();
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
+  // Mobile Telegram path: open in system browser via WebApp.openLink so iOS Safari
+  // (or Android Chrome) handles the Content-Disposition download natively.
+  if (tg && (isIOS || isAndroid) && typeof tg.openLink === 'function' && token) {
+    const sep = url.includes('?') ? '&' : '?';
+    const fullUrl = `${absoluteUrl(url)}${sep}token=${encodeURIComponent(token)}`;
+    tg.openLink(fullUrl);
+    return;
+  }
+
+  // Desktop / non-Telegram fallback — blob + anchor click.
   const res = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
@@ -30,27 +59,10 @@ async function downloadAuthed(url: string, filename: string): Promise<void> {
   }
   const blob = await res.blob();
   const objectUrl = URL.createObjectURL(blob);
-
-  // iOS Telegram WebView doesn't honor <a download>. Open the blob URL in a new
-  // tab/window — iOS QuickLook renders CSV/XLSX previews where the user can save.
-  // Desktop browsers and Android Telegram still get a normal download.
-  const isAppleTelegram =
-    /iPhone|iPad|iPod/i.test(navigator.userAgent) && !!getWebApp();
-
-  if (isAppleTelegram) {
-    // Open in same WebView — Telegram iOS treats this as a document and shows
-    // the share sheet so the user can "Save to Files".
-    const opened = window.open(objectUrl, '_blank');
-    if (!opened) {
-      // Popup blocked — fall back to anchor click.
-      anchorDownload(objectUrl, filename);
-    }
-    // Release the blob a bit later — iOS needs time to consume it.
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  } else {
-    anchorDownload(objectUrl, filename);
-    URL.revokeObjectURL(objectUrl);
-  }
+  anchorDownload(objectUrl, filename);
+  // Defer revoke — synchronous revoke races with the browser's download fetch
+  // and produces an empty file in some browsers (notably Chromium on macOS).
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }
 
 function anchorDownload(objectUrl: string, filename: string) {
