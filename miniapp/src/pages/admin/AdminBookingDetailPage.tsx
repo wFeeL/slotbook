@@ -20,6 +20,7 @@ import { showConfirm } from '@/shared/telegram/hooks';
 import { request } from '@/shared/api/client';
 import { AdminBookingReadSchema, type AdminBookingRead } from '@/shared/api/types';
 import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
+import { ContactLinks } from '@/shared/ui/ContactLinks';
 
 function useAdminBookingDetail(id: number) {
   return useQuery({
@@ -148,7 +149,13 @@ export function AdminBookingDetailPage() {
             <div className="text-sienna-deep text-xs mt-0.5">
               Клиент: {b.client_first_name ?? `#${b.client_id}`}
               {b.client_last_name ? ` ${b.client_last_name}` : ''}
-              {b.client_telegram_id ? ` · TG ${b.client_telegram_id}` : ''}
+            </div>
+            <div className="mt-2">
+              <ContactLinks
+                username={b.client_username}
+                phone={b.client_phone}
+                telegramId={b.client_telegram_id}
+              />
             </div>
             {b.client_comment && (
               <div className="text-ink text-sm mt-2 italic">«{b.client_comment}»</div>

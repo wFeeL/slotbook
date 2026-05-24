@@ -389,6 +389,8 @@ async def _enrich_bookings(
                 client_first_name=usr.first_name if usr else None,
                 client_last_name=usr.last_name if usr else None,
                 client_telegram_id=usr.telegram_id if usr else None,
+                client_username=usr.username if usr else None,
+                client_phone=usr.phone if usr else None,
             )
         )
     return out

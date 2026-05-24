@@ -39,6 +39,8 @@ class AdminBookingRead(BaseModel):
     client_first_name: str | None = None
     client_last_name: str | None = None
     client_telegram_id: int | None = None
+    client_username: str | None = None
+    client_phone: str | None = None
 
 
 class DashboardCounts(BaseModel):

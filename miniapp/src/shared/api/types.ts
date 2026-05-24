@@ -117,6 +117,8 @@ export const AdminBookingReadSchema = z.object({
   client_first_name: z.string().nullable().optional(),
   client_last_name: z.string().nullable().optional(),
   client_telegram_id: z.number().nullable().optional(),
+  client_username: z.string().nullable().optional(),
+  client_phone: z.string().nullable().optional(),
 });
 export type AdminBookingRead = z.infer<typeof AdminBookingReadSchema>;
 
