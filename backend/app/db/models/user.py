@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum, Index, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -37,5 +37,8 @@ class User(Base):
         onupdate=func.now(),
     )
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reminders_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
 
     __table_args__ = (Index("ix_users_role", "role"),)

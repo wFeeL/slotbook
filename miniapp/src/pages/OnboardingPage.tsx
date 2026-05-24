@@ -71,6 +71,15 @@ export function OnboardingPage() {
           )}
         </div>
 
+        <button
+          type="button"
+          onClick={() => navigate('/settings')}
+          className="self-center text-sienna-deep text-sm font-semibold mt-2"
+          style={{ animation: 'fade-up 320ms 140ms ease-out both' }}
+        >
+          ⚙ Настройки
+        </button>
+
         <footer
           className="text-center text-sienna-deep text-xs mt-auto"
           style={{ animation: 'fade-up 320ms 160ms ease-out both' }}

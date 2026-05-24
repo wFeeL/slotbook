@@ -106,11 +106,12 @@ async def test_create_booking_enqueues_two_reminders(db_session, seed):
     r24 = by_type[NotificationType.REMINDER_24H]
     r2 = by_type[NotificationType.REMINDER_2H]
 
-    # scheduled_at should equal starts_at - 24h / -2h
+    # scheduled_at should equal starts_at - long / short reminder intervals.
+    # Defaults are 24h (long) and 1h (short), business-configurable.
     assert r24.scheduled_at is not None
     assert r2.scheduled_at is not None
     assert abs((r24.scheduled_at - (starts_at - timedelta(hours=24))).total_seconds()) < 2
-    assert abs((r2.scheduled_at - (starts_at - timedelta(hours=2))).total_seconds()) < 2
+    assert abs((r2.scheduled_at - (starts_at - timedelta(hours=1))).total_seconds()) < 2
     assert r24.notification_status == NotificationStatus.PENDING
     assert r2.notification_status == NotificationStatus.PENDING
 

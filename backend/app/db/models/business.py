@@ -19,6 +19,12 @@ class Business(Base):
     booking_buffer_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     min_cancellation_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     slot_step_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+    reminder_long_hours: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=24, server_default="24"
+    )
+    reminder_short_hours: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

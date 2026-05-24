@@ -59,6 +59,8 @@ class BusinessRead(BaseModel):
     booking_buffer_minutes: int
     min_cancellation_hours: int
     slot_step_minutes: int
+    reminder_long_hours: int
+    reminder_short_hours: int
 
 
 class BusinessUpdate(BaseModel):
@@ -67,6 +69,8 @@ class BusinessUpdate(BaseModel):
     booking_buffer_minutes: int | None = Field(default=None, ge=0, le=60)
     min_cancellation_hours: int | None = Field(default=None, ge=0, le=168)
     slot_step_minutes: int | None = None
+    reminder_long_hours: int | None = Field(default=None, ge=1, le=168)
+    reminder_short_hours: int | None = Field(default=None, ge=0, le=24)
 
     @field_validator("slot_step_minutes")
     @classmethod

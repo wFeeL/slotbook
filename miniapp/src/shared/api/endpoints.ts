@@ -12,6 +12,10 @@ import {
   BusinessReadSchema,
   DashboardResponseSchema,
   type DashboardResponse,
+  MePreferencesSchema,
+  type MePreferences,
+  MeResponseSchema,
+  type MeResponse,
   ScheduleExceptionReadSchema,
   type ScheduleExceptionRead,
   type ServiceRead,
@@ -187,6 +191,8 @@ export const api = {
           booking_buffer_minutes: number;
           min_cancellation_hours: number;
           slot_step_minutes: number;
+          reminder_long_hours: number;
+          reminder_short_hours: number;
         }>,
       ): Promise<BusinessRead> {
         return request(
@@ -441,6 +447,18 @@ export const api = {
           z.unknown(),
         ).then(() => undefined);
       },
+    },
+  },
+  me: {
+    get(): Promise<MeResponse> {
+      return request('/api/v1/users/me', { method: 'GET' }, MeResponseSchema);
+    },
+    patchPreferences(body: { reminders_enabled: boolean }): Promise<MePreferences> {
+      return request(
+        '/api/v1/users/me/preferences',
+        { method: 'PATCH', body: JSON.stringify(body) },
+        MePreferencesSchema,
+      );
     },
   },
   staffMe: {

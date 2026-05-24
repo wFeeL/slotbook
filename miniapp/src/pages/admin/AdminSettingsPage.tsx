@@ -33,6 +33,8 @@ interface BusinessForm {
   slot_step_minutes: number;
   booking_buffer_minutes: number;
   min_cancellation_hours: number;
+  reminder_long_hours: number;
+  reminder_short_hours: number;
 }
 
 export function AdminSettingsPage() {
@@ -48,6 +50,8 @@ export function AdminSettingsPage() {
         slot_step_minutes: q.data.slot_step_minutes,
         booking_buffer_minutes: q.data.booking_buffer_minutes,
         min_cancellation_hours: q.data.min_cancellation_hours,
+        reminder_long_hours: q.data.reminder_long_hours,
+        reminder_short_hours: q.data.reminder_short_hours,
       });
     }
   }, [q.data]);
@@ -116,6 +120,36 @@ export function AdminSettingsPage() {
         value={String(form.min_cancellation_hours)}
         onChange={(e) => setForm({ ...form, min_cancellation_hours: Number(e.target.value) })}
       />
+
+      <section className="flex flex-col gap-2 pt-2">
+        <h3 className="text-sienna-deep text-xs uppercase tracking-wide">
+          Напоминания клиенту о записи
+        </h3>
+        <p className="text-sienna-deep text-sm">
+          Бот шлёт клиенту два напоминания: «длинное» и «короткое». Клиент может
+          выключить напоминания в своём профиле.
+        </p>
+        <Input
+          label="За сколько часов до записи — длинное напоминание"
+          type="number"
+          min={1}
+          max={168}
+          value={String(form.reminder_long_hours)}
+          onChange={(e) =>
+            setForm({ ...form, reminder_long_hours: Number(e.target.value) })
+          }
+        />
+        <Input
+          label="За сколько часов до записи — короткое напоминание"
+          type="number"
+          min={0}
+          max={24}
+          value={String(form.reminder_short_hours)}
+          onChange={(e) =>
+            setForm({ ...form, reminder_short_hours: Number(e.target.value) })
+          }
+        />
+      </section>
 
       <Button onClick={save} disabled={update.isPending}>
         {update.isPending ? '...' : 'Сохранить'}

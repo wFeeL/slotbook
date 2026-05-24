@@ -171,8 +171,27 @@ export const BusinessReadSchema = z.object({
   booking_buffer_minutes: z.number(),
   min_cancellation_hours: z.number(),
   slot_step_minutes: z.number(),
+  reminder_long_hours: z.number(),
+  reminder_short_hours: z.number(),
 });
 export type BusinessRead = z.infer<typeof BusinessReadSchema>;
+
+export const MeResponseSchema = z.object({
+  id: z.number(),
+  telegram_id: z.number(),
+  first_name: z.string().nullable(),
+  last_name: z.string().nullable(),
+  username: z.string().nullable(),
+  phone: z.string().nullable(),
+  role: UserRoleSchema,
+  reminders_enabled: z.boolean(),
+});
+export type MeResponse = z.infer<typeof MeResponseSchema>;
+
+export const MePreferencesSchema = z.object({
+  reminders_enabled: z.boolean(),
+});
+export type MePreferences = z.infer<typeof MePreferencesSchema>;
 
 export const StatisticsPeriodSchema = z.enum(['7d', '30d', '90d', '365d']);
 export type StatisticsPeriodT = z.infer<typeof StatisticsPeriodSchema>;

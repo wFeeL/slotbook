@@ -39,6 +39,7 @@ from app.db.repositories.notifications import NotificationsRepo
 from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
 from app.db.repositories.services import ServicesRepo
 from app.db.repositories.staff import StaffRepo
+from app.db.repositories.users import UsersRepo
 from app.services.slot_service import (
     BusyInterval,
     ExceptionEntry,
@@ -251,29 +252,35 @@ class BookingService:
                 )
             )
 
-        # Enqueue reminder notifications for client (only if T-24h / T-2h is in the future)
-        reminder_24h_at = starts_at_utc - timedelta(hours=24)
-        reminder_2h_at = starts_at_utc - timedelta(hours=2)
-        if reminder_24h_at > now:
-            notif_repo.add(
-                Notification(
-                    booking_id=booking.id,
-                    user_id=client_id,
-                    notification_type=NotificationType.REMINDER_24H,
-                    notification_status=NotificationStatus.PENDING,
-                    scheduled_at=reminder_24h_at,
+        # Enqueue reminder notifications for client unless they have opted out.
+        # The intervals are business-configurable; "long" defaults to 24h, "short" to 1h.
+        client_user = await UsersRepo(self.session).get_by_id(client_id)
+        reminders_on = (client_user is None) or bool(
+            getattr(client_user, "reminders_enabled", True)
+        )
+        if reminders_on:
+            long_at = starts_at_utc - timedelta(hours=business.reminder_long_hours)
+            short_at = starts_at_utc - timedelta(hours=business.reminder_short_hours)
+            if long_at > now:
+                notif_repo.add(
+                    Notification(
+                        booking_id=booking.id,
+                        user_id=client_id,
+                        notification_type=NotificationType.REMINDER_24H,
+                        notification_status=NotificationStatus.PENDING,
+                        scheduled_at=long_at,
+                    )
                 )
-            )
-        if reminder_2h_at > now:
-            notif_repo.add(
-                Notification(
-                    booking_id=booking.id,
-                    user_id=client_id,
-                    notification_type=NotificationType.REMINDER_2H,
-                    notification_status=NotificationStatus.PENDING,
-                    scheduled_at=reminder_2h_at,
+            if short_at > now:
+                notif_repo.add(
+                    Notification(
+                        booking_id=booking.id,
+                        user_id=client_id,
+                        notification_type=NotificationType.REMINDER_2H,
+                        notification_status=NotificationStatus.PENDING,
+                        scheduled_at=short_at,
+                    )
                 )
-            )
 
         # 11. Insert audit log
         AuditRepo(self.session).log(
@@ -517,28 +524,33 @@ class BookingService:
         await notif_repo.delete_pending_reminders_for_booking(booking.id)
 
         # Enqueue fresh reminders (only if future)
-        reminder_24h_at = new_starts_at_utc - timedelta(hours=24)
-        reminder_2h_at = new_starts_at_utc - timedelta(hours=2)
-        if reminder_24h_at > now:
-            notif_repo.add(
-                Notification(
-                    booking_id=booking.id,
-                    user_id=booking.client_id,
-                    notification_type=NotificationType.REMINDER_24H,
-                    notification_status=NotificationStatus.PENDING,
-                    scheduled_at=reminder_24h_at,
+        client_user = await UsersRepo(self.session).get_by_id(booking.client_id)
+        reminders_on = (client_user is None) or bool(
+            getattr(client_user, "reminders_enabled", True)
+        )
+        if reminders_on:
+            long_at = new_starts_at_utc - timedelta(hours=business.reminder_long_hours)
+            short_at = new_starts_at_utc - timedelta(hours=business.reminder_short_hours)
+            if long_at > now:
+                notif_repo.add(
+                    Notification(
+                        booking_id=booking.id,
+                        user_id=booking.client_id,
+                        notification_type=NotificationType.REMINDER_24H,
+                        notification_status=NotificationStatus.PENDING,
+                        scheduled_at=long_at,
+                    )
                 )
-            )
-        if reminder_2h_at > now:
-            notif_repo.add(
-                Notification(
-                    booking_id=booking.id,
-                    user_id=booking.client_id,
-                    notification_type=NotificationType.REMINDER_2H,
-                    notification_status=NotificationStatus.PENDING,
-                    scheduled_at=reminder_2h_at,
+            if short_at > now:
+                notif_repo.add(
+                    Notification(
+                        booking_id=booking.id,
+                        user_id=booking.client_id,
+                        notification_type=NotificationType.REMINDER_2H,
+                        notification_status=NotificationStatus.PENDING,
+                        scheduled_at=short_at,
+                    )
                 )
-            )
 
         # Immediate notifications (client + admins)
         notif_repo.add(
