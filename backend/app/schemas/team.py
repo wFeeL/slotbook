@@ -35,3 +35,7 @@ class TeamResponse(BaseModel):
 class AdminInviteCreate(BaseModel):
     role: Literal["admin", "staff"]
     ttl_hours: Literal[24, 168, 720] = 168
+
+
+class TeamMemberRoleUpdate(BaseModel):
+    role: Literal["admin", "staff", "client"]

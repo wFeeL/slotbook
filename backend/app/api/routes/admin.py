@@ -56,6 +56,7 @@ from app.schemas.team import (
     AdminInviteCreate,
     AdminInviteRead,
     TeamMember,
+    TeamMemberRoleUpdate,
     TeamResponse,
 )
 from app.schemas.users import UserBrief
@@ -788,6 +789,72 @@ async def admin_revoke_invite(
     ok = await AdminInvitesRepo(session).revoke(invite_id)
     if not ok:
         raise NotFound("Invite not found or already used")
+    await session.commit()
+
+
+@router.patch("/team/{user_id}/role", response_model=TeamMember)
+async def admin_set_member_role(
+    user_id: int,
+    body: TeamMemberRoleUpdate,
+    admin: AdminUser,
+    session: SessionDep,
+) -> TeamMember:
+    """Change a team member's role. SUPERADMIN-protected and self-protected."""
+    from fastapi import HTTPException
+    target = await UsersRepo(session).get_by_id(user_id)
+    if target is None:
+        raise NotFound("User not found")
+    if target.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя изменить собственную роль",
+        )
+    if target.role == UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нельзя менять роль главного администратора",
+        )
+    new_role = UserRole(body.role)
+    target.role = new_role
+    # If demoted from staff to anything else, unlink from any StaffMember.
+    if new_role != UserRole.STAFF:
+        from sqlalchemy import update as _update
+        await session.execute(
+            _update(StaffMember)
+            .where(StaffMember.user_id == target.id)
+            .values(user_id=None)
+        )
+    await session.commit()
+    await session.refresh(target)
+    return TeamMember.model_validate(target)
+
+
+@router.delete("/team/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_remove_member(
+    user_id: int, admin: AdminUser, session: SessionDep
+) -> None:
+    """Remove a member from the team — demote to client + unlink staff."""
+    from fastapi import HTTPException
+    from sqlalchemy import update as _update
+    target = await UsersRepo(session).get_by_id(user_id)
+    if target is None:
+        raise NotFound("User not found")
+    if target.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя удалить себя из команды",
+        )
+    if target.role == UserRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нельзя удалить главного администратора",
+        )
+    target.role = UserRole.CLIENT
+    await session.execute(
+        _update(StaffMember)
+        .where(StaffMember.user_id == target.id)
+        .values(user_id=None)
+    )
     await session.commit()
 
 

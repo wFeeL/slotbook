@@ -427,6 +427,20 @@ export const api = {
           () => undefined,
         );
       },
+      setMemberRole(userId: number, role: 'admin' | 'staff' | 'client'): Promise<void> {
+        return request(
+          `/api/v1/admin/team/${userId}/role`,
+          { method: 'PATCH', body: JSON.stringify({ role }) },
+          z.unknown(),
+        ).then(() => undefined);
+      },
+      removeMember(userId: number): Promise<void> {
+        return request(
+          `/api/v1/admin/team/${userId}`,
+          { method: 'DELETE' },
+          z.unknown(),
+        ).then(() => undefined);
+      },
     },
   },
   staffMe: {

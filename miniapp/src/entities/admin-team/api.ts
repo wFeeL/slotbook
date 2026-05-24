@@ -25,3 +25,20 @@ export function useRevokeInvite() {
     onSuccess: () => qc.invalidateQueries({ queryKey: adminTeamKeys.root() }),
   });
 }
+
+export function useSetMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { userId: number; role: 'admin' | 'staff' | 'client' }) =>
+      api.admin.team.setMemberRole(args.userId, args.role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminTeamKeys.root() }),
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: number) => api.admin.team.removeMember(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminTeamKeys.root() }),
+  });
+}
