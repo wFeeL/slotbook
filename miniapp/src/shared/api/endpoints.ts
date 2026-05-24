@@ -460,6 +460,13 @@ export const api = {
         MePreferencesSchema,
       );
     },
+    patchProfile(body: { phone: string | null }): Promise<MeResponse> {
+      return request(
+        '/api/v1/users/me',
+        { method: 'PATCH', body: JSON.stringify(body) },
+        MeResponseSchema,
+      );
+    },
   },
   staffMe: {
     profile(): Promise<StaffMeResponse> {

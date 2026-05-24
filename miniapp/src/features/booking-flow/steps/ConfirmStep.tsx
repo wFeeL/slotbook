@@ -101,7 +101,17 @@ export function ConfirmStep() {
       <Card surface="sand" className="mb-4">
         <dl className="flex flex-col gap-3">
           <Row label="Услуга" value={service.title} />
+          {service.description && (
+            <div className="text-sienna-deep text-sm italic -mt-1">
+              {service.description}
+            </div>
+          )}
           <Row label="Специалист" value={member.name} />
+          {member.description && (
+            <div className="text-sienna-deep text-sm italic -mt-1">
+              {member.description}
+            </div>
+          )}
           <Row
             label="Когда"
             value={`${capitalize(formatLocalWeekday(startsAt))}, ${formatLocalDate(startsAt)} · ${formatLocalTime(startsAt)}`}

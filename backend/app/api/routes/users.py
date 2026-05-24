@@ -18,6 +18,10 @@ class MePreferencesUpdate(BaseModel):
     reminders_enabled: bool = Field(...)
 
 
+class MeProfileUpdate(BaseModel):
+    phone: str | None = Field(default=None, max_length=64)
+
+
 class MeResponse(BaseModel):
     id: int
     telegram_id: int
@@ -51,3 +55,25 @@ async def patch_my_preferences(
     await session.commit()
     await session.refresh(user)
     return MePreferences(reminders_enabled=user.reminders_enabled)
+
+
+@router.patch("/me", response_model=MeResponse)
+async def patch_me(
+    body: MeProfileUpdate, user: CurrentUser, session: SessionDep
+) -> MeResponse:
+    updates = body.model_dump(exclude_unset=True)
+    if "phone" in updates:
+        phone = (updates["phone"] or "").strip() or None
+        user.phone = phone
+    await session.commit()
+    await session.refresh(user)
+    return MeResponse(
+        id=user.id,
+        telegram_id=user.telegram_id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        username=user.username,
+        phone=user.phone,
+        role=user.role,
+        reminders_enabled=user.reminders_enabled,
+    )

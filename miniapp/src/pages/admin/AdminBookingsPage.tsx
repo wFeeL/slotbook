@@ -64,10 +64,11 @@ export function AdminBookingsPage() {
                     {' · '}
                     {b.staff_name ?? `Сотрудник #${b.staff_id}`}
                   </div>
-                  {b.client_first_name && (
+                  {(b.client_first_name || b.client_username) && (
                     <div className="text-sienna-deep text-xs mt-0.5">
-                      {b.client_first_name}
+                      {b.client_first_name ?? ''}
                       {b.client_last_name ? ` ${b.client_last_name}` : ''}
+                      {b.client_username ? ` · @${b.client_username}` : ''}
                     </div>
                   )}
                 </div>
