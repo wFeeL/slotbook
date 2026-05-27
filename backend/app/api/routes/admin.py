@@ -11,8 +11,9 @@ from app.api.deps import AdminUser, SessionDep
 from app.core.config import Settings, get_settings
 from app.core.errors import CannotCancelInCurrentStatus, NotFound
 from app.core.time import local_date_bounds_utc
-from app.db.enums import BookingSource, BookingStatus, UserRole
+from app.db.enums import BookingSource, BookingStatus, PhotoOwnerType, UserRole
 from app.db.models.branch import Branch
+from app.db.models.photo import Photo
 from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
@@ -22,6 +23,8 @@ from app.db.repositories.audit import AuditRepo
 from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.branches import BranchesRepo
 from app.db.repositories.businesses import BusinessesRepo
+from app.db.repositories.pending_photo_uploads import PendingPhotoUploadsRepo
+from app.db.repositories.photos import PhotosRepo
 from app.db.repositories.schedules import ScheduleExceptionsRepo, WorkingHoursRepo
 from app.db.repositories.services import ServicesRepo
 from app.db.repositories.staff import StaffRepo
@@ -36,6 +39,11 @@ from app.schemas.admin import (
     DashboardResponse,
 )
 from app.schemas.bookings import BookingReschedule
+from app.schemas.photos import (
+    PhotoSortUpdate,
+    PhotoUploadIntentCreate,
+    PhotoUploadIntentResponse,
+)
 from app.schemas.branches import BranchCreate, BranchRead, BranchUpdate
 from app.schemas.schedules import (
     ScheduleExceptionCreate,
@@ -983,4 +991,68 @@ async def admin_archive_branch(
     if branch is None:
         raise NotFound("Branch not found")
     branch.is_active = False
+    await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Admin photo management (upload intent, sort, delete)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/photos/upload-intent",
+    response_model=PhotoUploadIntentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_photo_upload_intent(
+    body: PhotoUploadIntentCreate,
+    admin: AdminUser,
+    session: SessionDep,
+    request: Request,
+) -> PhotoUploadIntentResponse:
+    if body.owner_type == PhotoOwnerType.SERVICE:
+        owner = await ServicesRepo(session).get(body.owner_id)
+    else:
+        owner = await StaffRepo(session).get(body.owner_id)
+    if owner is None:
+        raise NotFound("Owner not found")
+
+    intent = await PendingPhotoUploadsRepo(session).upsert(
+        admin_user_id=admin.id,
+        owner_type=body.owner_type,
+        owner_id=body.owner_id,
+    )
+    await session.commit()
+
+    settings = get_settings()
+    bot_username = await _resolve_bot_username(request, settings)
+    return PhotoUploadIntentResponse(
+        bot_url=f"https://t.me/{bot_username}?start=upload",
+        expires_at=intent.expires_at,
+    )
+
+
+@router.patch("/photos/{photo_id}/sort", response_model=dict)
+async def admin_update_photo_sort(
+    photo_id: int,
+    body: PhotoSortUpdate,
+    _admin: AdminUser,
+    session: SessionDep,
+) -> dict:
+    photo = await PhotosRepo(session).get(photo_id)
+    if photo is None:
+        raise NotFound("Photo not found")
+    photo.sort_order = body.sort_order
+    await session.commit()
+    return {"id": photo.id, "sort_order": photo.sort_order}
+
+
+@router.delete("/photos/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_photo(
+    photo_id: int, _admin: AdminUser, session: SessionDep
+) -> None:
+    photo = await PhotosRepo(session).get(photo_id)
+    if photo is None:
+        raise NotFound("Photo not found")
+    await PhotosRepo(session).delete(photo)
     await session.commit()

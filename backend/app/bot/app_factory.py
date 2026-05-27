@@ -24,13 +24,14 @@ def create_dispatcher(_settings: Settings) -> Dispatcher:
     """
     from app.bot.middlewares.db import DbSessionMiddleware
     from app.bot.middlewares.logging import UpdateLoggingMiddleware
-    from app.bot.routers import admin_callbacks, help, my_bookings, start
+    from app.bot.routers import admin_callbacks, help, my_bookings, start, upload
 
     dispatcher = Dispatcher(storage=MemoryStorage())
     dispatcher.update.outer_middleware(UpdateLoggingMiddleware())
     dispatcher.update.outer_middleware(DbSessionMiddleware())
 
     dispatcher.include_router(start.router)
+    dispatcher.include_router(upload.router)
     dispatcher.include_router(help.router)
     dispatcher.include_router(my_bookings.router)
     dispatcher.include_router(admin_callbacks.router)
