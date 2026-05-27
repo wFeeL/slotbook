@@ -178,6 +178,9 @@ async def patch_my_booking(
     await session.commit()
     await session.refresh(booking)
 
+    from app.api.routes.admin import _enqueue_review_request
+    await _enqueue_review_request(session, booking=booking, previous_status=previous_status)
+
     svc = await session.get(Service, booking.service_id)
     cli = await session.get(User, booking.client_id)
     return _booking_to_read(booking, svc, cli)

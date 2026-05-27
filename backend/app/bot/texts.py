@@ -162,4 +162,14 @@ def render(
         )
         return text, staff_cabinet_keyboard(mini_app_url)
 
+    if notification.notification_type == NotificationType.REVIEW_REQUEST:
+        from app.bot.keyboards import review_request_keyboard
+        text = (
+            f"🌿 <b>Как прошла встреча?</b>\n\n"
+            f"<b>Услуга:</b> {service_title}\n"
+            f"<b>Мастер:</b> {staff_name}\n\n"
+            f"Поставьте оценку — это поможет другим клиентам и нам стать лучше."
+        )
+        return text, review_request_keyboard(mini_app_url, booking.id)
+
     raise ValueError(f"Unknown notification type: {notification.notification_type}")

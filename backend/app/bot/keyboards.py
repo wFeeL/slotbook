@@ -77,3 +77,18 @@ def staff_cabinet_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def review_request_keyboard(mini_app_url: str, booking_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="⭐ Оставить отзыв",
+                    web_app=WebAppInfo(
+                        url=f"{mini_app_url.rstrip('/')}/review/{booking_id}"
+                    ),
+                )
+            ]
+        ]
+    )

@@ -6,6 +6,7 @@ from app.api.routes import (
     bookings,
     branches,
     photos,
+    reviews,
     services,
     slots,
     staff,
@@ -19,8 +20,9 @@ api_router.include_router(users.router)
 api_router.include_router(branches.router)
 api_router.include_router(photos.router)
 api_router.include_router(services.router)
-api_router.include_router(staff.router)
 api_router.include_router(staff_me.router)
+api_router.include_router(staff.router)
 api_router.include_router(slots.router)
 api_router.include_router(bookings.router)
+api_router.include_router(reviews.router)
 api_router.include_router(admin.router)

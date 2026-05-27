@@ -497,6 +497,7 @@ async def admin_patch_booking(
 
     await session.commit()
     await session.refresh(booking)
+    await _enqueue_review_request(session, booking=booking, previous_status=previous_status)
     return await _enrich_booking(session, booking)
 
 
@@ -1056,3 +1057,142 @@ async def admin_delete_photo(
         raise NotFound("Photo not found")
     await PhotosRepo(session).delete(photo)
     await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Admin reviews moderation
+# ---------------------------------------------------------------------------
+
+from app.db.models.review import Review as _Review  # noqa: E402
+from app.db.repositories.reviews import ReviewsRepo as _ReviewsRepo  # noqa: E402
+from app.schemas.reviews import (  # noqa: E402
+    AdminReviewReplyRequest as _ReplyReq,
+    ReviewRead as _ReviewRead,
+)
+from app.services.reviews_service import ReviewsService as _ReviewsService  # noqa: E402
+
+
+@router.get("/reviews", response_model=list[_ReviewRead])
+async def admin_list_reviews(
+    _admin: AdminUser,
+    session: SessionDep,
+    hidden: bool | None = None,
+    service_id: int | None = None,
+    staff_id: int | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> list[_ReviewRead]:
+    rows = await _ReviewsRepo(session).list_admin(
+        hidden=hidden, service_id=service_id, staff_id=staff_id,
+        limit=limit, offset=offset,
+    )
+    users_repo = UsersRepo(session)
+    out: list[_ReviewRead] = []
+    for r in rows:
+        u = await users_repo.get_by_id(r.client_id)
+        out.append(_ReviewRead(
+            id=r.id, booking_id=r.booking_id, service_id=r.service_id,
+            staff_id=r.staff_id, rating=r.rating, text=r.text,
+            is_hidden=r.is_hidden, admin_reply=r.admin_reply,
+            admin_reply_at=r.admin_reply_at, created_at=r.created_at,
+            client_first_name=u.first_name if u else None,
+        ))
+    return out
+
+
+async def _moderate_review(session, review_id: int, *, hide: bool) -> _Review:
+    repo = _ReviewsRepo(session)
+    r = await repo.get(review_id)
+    if r is None:
+        raise NotFound("Review not found")
+    r.is_hidden = hide
+    await session.commit()
+    await _ReviewsService(session).recompute_aggregates(
+        service_id=r.service_id, staff_id=r.staff_id
+    )
+    await session.commit()
+    return r
+
+
+@router.post("/reviews/{review_id}/hide", response_model=dict)
+async def admin_hide_review(
+    review_id: int, _admin: AdminUser, session: SessionDep
+) -> dict:
+    r = await _moderate_review(session, review_id, hide=True)
+    return {"id": r.id, "is_hidden": True}
+
+
+@router.post("/reviews/{review_id}/unhide", response_model=dict)
+async def admin_unhide_review(
+    review_id: int, _admin: AdminUser, session: SessionDep
+) -> dict:
+    r = await _moderate_review(session, review_id, hide=False)
+    return {"id": r.id, "is_hidden": False}
+
+
+@router.post("/reviews/{review_id}/reply", response_model=dict)
+async def admin_reply_review(
+    review_id: int, body: _ReplyReq, admin: AdminUser, session: SessionDep
+) -> dict:
+    r = await _ReviewsRepo(session).get(review_id)
+    if r is None:
+        raise NotFound("Review not found")
+    r.admin_reply = body.text
+    r.admin_reply_user_id = admin.id
+    r.admin_reply_at = datetime.now(UTC)
+    await session.commit()
+    return {"id": r.id, "admin_reply": r.admin_reply}
+
+
+@router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_review(
+    review_id: int, _admin: AdminUser, session: SessionDep
+) -> None:
+    repo = _ReviewsRepo(session)
+    r = await repo.get(review_id)
+    if r is None:
+        raise NotFound("Review not found")
+    service_id, staff_id = r.service_id, r.staff_id
+    await repo.delete(r)
+    await session.commit()
+    await _ReviewsService(session).recompute_aggregates(
+        service_id=service_id, staff_id=staff_id
+    )
+    await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# REVIEW_REQUEST enqueue helper (shared by admin_patch_booking + staff_me.patch_my_booking)
+# ---------------------------------------------------------------------------
+
+from sqlalchemy.exc import IntegrityError as _IntegrityError  # noqa: E402
+from app.db.enums import (  # noqa: E402
+    NotificationStatus as _NotificationStatus,
+    NotificationType as _NotificationType,
+)
+from app.db.models.notification import Notification as _Notification  # noqa: E402
+
+
+async def _enqueue_review_request(session, *, booking, previous_status: str) -> None:
+    """Schedule a REVIEW_REQUEST notification 2h after booking marks completed.
+
+    Idempotent — `ux_review_request_per_booking` partial UNIQUE index dedups
+    repeated completion (e.g. admin clicks Завершить twice).
+    Respects per-user opt-out via `users.reminders_enabled`.
+    """
+    if booking.status != BookingStatus.COMPLETED or previous_status == "completed":
+        return
+    client = await UsersRepo(session).get_by_id(booking.client_id)
+    if client is None or not client.reminders_enabled:
+        return
+    try:
+        session.add(_Notification(
+            booking_id=booking.id,
+            user_id=booking.client_id,
+            notification_type=_NotificationType.REVIEW_REQUEST,
+            notification_status=_NotificationStatus.PENDING,
+            scheduled_at=datetime.now(UTC) + timedelta(hours=2),
+        ))
+        await session.commit()
+    except _IntegrityError:
+        await session.rollback()
