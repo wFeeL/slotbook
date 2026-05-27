@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.photos import PhotoRead
+
 
 class StaffRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -10,6 +12,9 @@ class StaffRead(BaseModel):
     name: str
     description: str | None
     is_active: bool
+    photos: list[PhotoRead] = []
+    avg_rating: float | None = None
+    review_count: int = 0
 
 
 class StaffCreate(BaseModel):
@@ -41,3 +46,6 @@ class StaffReadWithServices(BaseModel):
     description: str | None
     is_active: bool
     service_ids: list[int]
+    photos: list[PhotoRead] = []
+    avg_rating: float | None = None
+    review_count: int = 0

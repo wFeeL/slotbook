@@ -2,6 +2,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.photos import PhotoRead
+
 
 class ServiceRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -14,6 +16,9 @@ class ServiceRead(BaseModel):
     price: Decimal | None
     is_active: bool
     sort_order: int
+    photos: list[PhotoRead] = []
+    avg_rating: float | None = None
+    review_count: int = 0
 
 
 class ServiceCreate(BaseModel):
