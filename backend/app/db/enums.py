@@ -48,3 +48,8 @@ class NotificationStatus(StrEnum):
     PENDING = "pending"
     SENT = "sent"
     FAILED = "failed"
+
+
+class PhotoOwnerType(StrEnum):
+    SERVICE = "service"
+    STAFF = "staff"

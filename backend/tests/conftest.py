@@ -59,6 +59,7 @@ async def db_engine():  # type: ignore[no-untyped-def]
         await conn.execute(text("DROP TYPE IF EXISTS booking_source"))
         await conn.execute(text("DROP TYPE IF EXISTS notification_type"))
         await conn.execute(text("DROP TYPE IF EXISTS notification_status"))
+        await conn.execute(text("DROP TYPE IF EXISTS photo_owner_type"))
         # Create the enum types before creating tables (create_type=False on the ORM models).
         await conn.execute(
             text("CREATE TYPE user_role AS ENUM ('client','admin','staff','superadmin')")
@@ -91,6 +92,9 @@ async def db_engine():  # type: ignore[no-untyped-def]
         await conn.execute(
             text("CREATE TYPE notification_status AS ENUM ('pending','sent','failed')")
         )
+        await conn.execute(
+            text("CREATE TYPE photo_owner_type AS ENUM ('service','staff')")
+        )
         await conn.run_sync(Base.metadata.create_all)
         # Replace the non-unique partial index (created by ORM) with a UNIQUE one for race safety.
         await conn.execute(text("DROP INDEX IF EXISTS bookings_active_by_staff"))
@@ -120,6 +124,7 @@ async def db_engine():  # type: ignore[no-untyped-def]
         await conn.execute(text("DROP TYPE IF EXISTS booking_source"))
         await conn.execute(text("DROP TYPE IF EXISTS notification_type"))
         await conn.execute(text("DROP TYPE IF EXISTS notification_status"))
+        await conn.execute(text("DROP TYPE IF EXISTS photo_owner_type"))
     await engine.dispose()
 
 
