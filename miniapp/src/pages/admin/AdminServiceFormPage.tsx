@@ -1,11 +1,15 @@
 // miniapp/src/pages/admin/AdminServiceFormPage.tsx
 import { useNavigate, useParams } from 'react-router';
 import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ServiceForm, type ServiceFormValues } from '@/features/admin-services/ServiceForm';
 import { useAdminServices, useArchiveService, useCreateService, useUpdateServiceById } from '@/entities/admin-service/api';
 import { pushToast } from '@/shared/store/toast-store';
 import { useHaptic } from '@/shared/telegram/hooks';
 import { Button } from '@/shared/ui/Button';
+import { api } from '@/shared/api/endpoints';
+import { PhotoGallery } from '@/features/photos/PhotoGallery';
+import { PhotoUploadButton } from '@/features/photos/PhotoUploadButton';
 
 export function AdminServiceFormPage() {
   const navigate = useNavigate();
@@ -35,6 +39,19 @@ export function AdminServiceFormPage() {
   const create = useCreateService();
   const update = useUpdateServiceById();
   const archive = useArchiveService();
+
+  const qc = useQueryClient();
+  const photosQ = useQuery({
+    queryKey: ['service', id, 'photos'],
+    queryFn: () => api.services.get(id!),
+    enabled: id != null,
+    refetchOnWindowFocus: true,
+  });
+  const delPhoto = useMutation({
+    mutationFn: (pid: number) => api.admin.photos.delete(pid),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ['service', id, 'photos'] }),
+  });
 
   async function handleSubmit(values: ServiceFormValues) {
     try {
@@ -96,6 +113,34 @@ export function AdminServiceFormPage() {
         onSubmit={handleSubmit}
         onCancel={() => navigate('/admin/services')}
       />
+      {isEdit && id != null && (
+        <section className="mt-6 pt-4 border-t border-sand flex flex-col gap-2">
+          <h3 className="text-sienna-deep text-xs uppercase tracking-wide">
+            Фото услуги
+          </h3>
+          <PhotoGallery photos={photosQ.data?.photos ?? []} />
+          <div className="flex gap-2 flex-wrap">
+            <PhotoUploadButton ownerType="service" ownerId={id} />
+            {(photosQ.data?.photos ?? []).map((p) => (
+              <Button
+                key={p.id}
+                variant="ghost"
+                size="md"
+                onClick={async () => {
+                  try {
+                    await delPhoto.mutateAsync(p.id);
+                    pushToast('success', 'Фото удалено');
+                  } catch (e) {
+                    pushToast('error', e instanceof Error ? e.message : 'Не удалось');
+                  }
+                }}
+              >
+                🗑 #{p.id}
+              </Button>
+            ))}
+          </div>
+        </section>
+      )}
       {isEdit && (
         <div className="mt-6 pt-4 border-t border-sand">
           <Button variant="ghost" onClick={handleArchive} disabled={archive.isPending}>

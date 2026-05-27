@@ -1,6 +1,7 @@
 // miniapp/src/pages/admin/AdminStaffDetailPage.tsx
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminStaff, useArchiveStaff, useReplaceWorkingHours, useStaffWorkingHours, useUpdateStaff } from '@/entities/admin-staff/api';
 import { StaffForm, type StaffFormValues } from '@/features/admin-staff/StaffForm';
 import { WorkingHoursEditor } from '@/features/admin-staff/WorkingHoursEditor';
@@ -11,6 +12,9 @@ import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
 import { pushToast } from '@/shared/store/toast-store';
 import { cn } from '@/shared/lib/cn';
+import { api } from '@/shared/api/endpoints';
+import { PhotoGallery } from '@/features/photos/PhotoGallery';
+import { PhotoUploadButton } from '@/features/photos/PhotoUploadButton';
 
 type Tab = 'profile' | 'services' | 'hours' | 'exceptions';
 const TABS: { id: Tab; label: string }[] = [
@@ -110,6 +114,7 @@ export function AdminStaffDetailPage() {
             submitting={update.isPending}
             onSubmit={saveProfile}
           />
+          <StaffPhotosSection staffId={id} />
           {staff.is_active && (
             <div className="mt-4 pt-4 border-t border-sand">
               <Button variant="ghost" onClick={archiveStaff} disabled={archive.isPending}>
@@ -132,5 +137,47 @@ export function AdminStaffDetailPage() {
 
       {tab === 'exceptions' && <ExceptionsEditor staffId={id} />}
     </div>
+  );
+}
+
+
+function StaffPhotosSection({ staffId }: { staffId: number }) {
+  const qc = useQueryClient();
+  const photosQ = useQuery({
+    queryKey: ['staff', staffId, 'photos'],
+    queryFn: () => api.staff.get(staffId),
+    refetchOnWindowFocus: true,
+  });
+  const delPhoto = useMutation({
+    mutationFn: (pid: number) => api.admin.photos.delete(pid),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['staff', staffId, 'photos'] }),
+  });
+  return (
+    <section className="mt-6 pt-4 border-t border-sand flex flex-col gap-2">
+      <h3 className="text-sienna-deep text-xs uppercase tracking-wide">
+        Фото и портфолио мастера
+      </h3>
+      <PhotoGallery photos={photosQ.data?.photos ?? []} />
+      <div className="flex gap-2 flex-wrap">
+        <PhotoUploadButton ownerType="staff" ownerId={staffId} />
+        {(photosQ.data?.photos ?? []).map((p) => (
+          <Button
+            key={p.id}
+            variant="ghost"
+            size="md"
+            onClick={async () => {
+              try {
+                await delPhoto.mutateAsync(p.id);
+                pushToast('success', 'Фото удалено');
+              } catch (e) {
+                pushToast('error', e instanceof Error ? e.message : 'Не удалось');
+              }
+            }}
+          >
+            🗑 #{p.id}
+          </Button>
+        ))}
+      </div>
+    </section>
   );
 }

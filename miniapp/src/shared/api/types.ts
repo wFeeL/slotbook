@@ -48,9 +48,9 @@ export const ServiceReadSchema = z.object({
     width: z.number().nullable(),
     height: z.number().nullable(),
     url: z.string(),
-  })),
+  })).optional(),
   avg_rating: z.number().nullable().optional(),
-  review_count: z.number(),
+  review_count: z.number().optional(),
 });
 export type ServiceRead = z.infer<typeof ServiceReadSchema>;
 
@@ -69,9 +69,9 @@ export const StaffReadSchema = z.object({
     width: z.number().nullable(),
     height: z.number().nullable(),
     url: z.string(),
-  })),
+  })).optional(),
   avg_rating: z.number().nullable().optional(),
-  review_count: z.number(),
+  review_count: z.number().optional(),
 });
 export type StaffRead = z.infer<typeof StaffReadSchema>;
 
@@ -193,9 +193,9 @@ export const StaffReadWithServicesSchema = z.object({
     width: z.number().nullable(),
     height: z.number().nullable(),
     url: z.string(),
-  })),
+  })).optional(),
   avg_rating: z.number().nullable().optional(),
-  review_count: z.number(),
+  review_count: z.number().optional(),
 });
 export type StaffReadWithServices = z.infer<typeof StaffReadWithServicesSchema>;
 
