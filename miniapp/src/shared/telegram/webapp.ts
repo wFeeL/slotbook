@@ -86,6 +86,7 @@ export interface TelegramWebApp {
   showAlert(message: string, callback?: () => void): void;
   /** WebApp 7.0+: open URL in external browser (iOS/Android). */
   openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
+  openTelegramLink?: (url: string) => void;
   /** WebApp 7.0+: prompt download of a file by URL. */
   downloadFile?: (
     params: { url: string; file_name: string },

@@ -16,6 +16,10 @@ import {
   type MePreferences,
   MeResponseSchema,
   type MeResponse,
+  PhotoUploadIntentResponseSchema,
+  type PhotoUploadIntentResponse,
+  ReviewReadSchema,
+  type ReviewRead,
   ScheduleExceptionReadSchema,
   type ScheduleExceptionRead,
   type ServiceRead,
@@ -68,12 +72,49 @@ export const api = {
       const suffix = qs.toString() ? `?${qs}` : '';
       return request(`/api/v1/services${suffix}`, { method: 'GET' }, z.array(ServiceReadSchema));
     },
+    get(id: number): Promise<ServiceRead> {
+      return request(`/api/v1/services/${id}`, { method: 'GET' }, ServiceReadSchema);
+    },
   },
   staff: {
     listForService(serviceId: number, opts: { branchId?: number } = {}): Promise<StaffRead[]> {
       const params = new URLSearchParams({ service_id: String(serviceId) });
       if (opts.branchId !== undefined) params.set('branch_id', String(opts.branchId));
       return request(`/api/v1/staff?${params}`, { method: 'GET' }, z.array(StaffReadSchema));
+    },
+    get(id: number): Promise<StaffRead> {
+      return request(`/api/v1/staff/${id}`, { method: 'GET' }, StaffReadSchema);
+    },
+  },
+  reviews: {
+    create(body: { booking_id: number; rating: number; text?: string | null }): Promise<ReviewRead> {
+      return request(
+        '/api/v1/reviews',
+        { method: 'POST', body: JSON.stringify(body) },
+        ReviewReadSchema,
+      );
+    },
+    listForService(serviceId: number, opts: { limit?: number; offset?: number } = {}): Promise<ReviewRead[]> {
+      const qs = new URLSearchParams();
+      if (opts.limit) qs.set('limit', String(opts.limit));
+      if (opts.offset) qs.set('offset', String(opts.offset));
+      const tail = qs.toString() ? `?${qs}` : '';
+      return request(
+        `/api/v1/services/${serviceId}/reviews${tail}`,
+        { method: 'GET' },
+        z.array(ReviewReadSchema),
+      );
+    },
+    listForStaff(staffId: number, opts: { limit?: number; offset?: number } = {}): Promise<ReviewRead[]> {
+      const qs = new URLSearchParams();
+      if (opts.limit) qs.set('limit', String(opts.limit));
+      if (opts.offset) qs.set('offset', String(opts.offset));
+      const tail = qs.toString() ? `?${qs}` : '';
+      return request(
+        `/api/v1/staff/${staffId}/reviews${tail}`,
+        { method: 'GET' },
+        z.array(ReviewReadSchema),
+      );
     },
   },
   slots: {
@@ -446,6 +487,61 @@ export const api = {
           { method: 'DELETE' },
           z.unknown(),
         ).then(() => undefined);
+      },
+    },
+    photos: {
+      createUploadIntent(body: { owner_type: 'service' | 'staff'; owner_id: number }): Promise<PhotoUploadIntentResponse> {
+        return request(
+          '/api/v1/admin/photos/upload-intent',
+          { method: 'POST', body: JSON.stringify(body) },
+          PhotoUploadIntentResponseSchema,
+        );
+      },
+      updateSort(photoId: number, sortOrder: number): Promise<void> {
+        return request(
+          `/api/v1/admin/photos/${photoId}/sort`,
+          { method: 'PATCH', body: JSON.stringify({ sort_order: sortOrder }) },
+          z.unknown(),
+        ).then(() => undefined);
+      },
+      delete(photoId: number): Promise<void> {
+        return request(
+          `/api/v1/admin/photos/${photoId}`,
+          { method: 'DELETE' },
+          z.unknown(),
+        ).then(() => undefined);
+      },
+    },
+    reviews: {
+      list(params: { hidden?: boolean; service_id?: number; staff_id?: number; limit?: number; offset?: number } = {}): Promise<ReviewRead[]> {
+        const qs = new URLSearchParams();
+        if (params.hidden !== undefined) qs.set('hidden', String(params.hidden));
+        if (params.service_id) qs.set('service_id', String(params.service_id));
+        if (params.staff_id) qs.set('staff_id', String(params.staff_id));
+        if (params.limit) qs.set('limit', String(params.limit));
+        if (params.offset) qs.set('offset', String(params.offset));
+        const tail = qs.toString() ? `?${qs}` : '';
+        return request(
+          `/api/v1/admin/reviews${tail}`,
+          { method: 'GET' },
+          z.array(ReviewReadSchema),
+        );
+      },
+      hide(id: number): Promise<void> {
+        return request(`/api/v1/admin/reviews/${id}/hide`, { method: 'POST' }, z.unknown()).then(() => undefined);
+      },
+      unhide(id: number): Promise<void> {
+        return request(`/api/v1/admin/reviews/${id}/unhide`, { method: 'POST' }, z.unknown()).then(() => undefined);
+      },
+      reply(id: number, text: string): Promise<void> {
+        return request(
+          `/api/v1/admin/reviews/${id}/reply`,
+          { method: 'POST', body: JSON.stringify({ text }) },
+          z.unknown(),
+        ).then(() => undefined);
+      },
+      delete(id: number): Promise<void> {
+        return request(`/api/v1/admin/reviews/${id}`, { method: 'DELETE' }, z.unknown()).then(() => undefined);
       },
     },
   },

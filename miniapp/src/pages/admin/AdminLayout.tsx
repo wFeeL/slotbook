@@ -67,6 +67,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/bookings', label: 'Записи', Icon: ListIcon },
   { to: '/admin/services', label: 'Услуги', Icon: SparkleIcon },
   { to: '/admin/staff', label: 'Сотрудники', Icon: UsersIcon },
+  { to: '/admin/reviews', label: 'Отзывы', Icon: SparkleIcon },
 ];
 
 export function AdminLayout() {

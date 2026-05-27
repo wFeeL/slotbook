@@ -34,6 +34,12 @@ const AdminCalendarPage = lazy(() => import('./pages/admin/AdminCalendarPage').t
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
 const AdminStatisticsPage = lazy(() => import('./pages/admin/AdminStatisticsPage').then((m) => ({ default: m.AdminStatisticsPage })));
 const AdminTeamPage = lazy(() => import('./pages/admin/AdminTeamPage').then((m) => ({ default: m.AdminTeamPage })));
+const AdminReviewsPage = lazy(() => import('./pages/admin/AdminReviewsPage').then((m) => ({ default: m.AdminReviewsPage })));
+
+// Trust pages
+const ServiceDetailPage = lazy(() => import('./pages/ServiceDetailPage').then((m) => ({ default: m.ServiceDetailPage })));
+const StaffPublicProfilePage = lazy(() => import('./pages/StaffPublicProfilePage').then((m) => ({ default: m.StaffPublicProfilePage })));
+const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })));
 
 // Staff cabinet chunks
 const StaffCabinetPage = lazy(() => import('./pages/staff/StaffCabinetPage').then((m) => ({ default: m.StaffCabinetPage })));
@@ -73,6 +79,9 @@ export function App() {
               <Route path="/my-bookings/:id/reschedule" element={<RescheduleWizardPage />} />
               <Route path="/my-bookings/:id" element={<BookingDetailPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/services/:id" element={<ServiceDetailPage />} />
+              <Route path="/staff/:id" element={<StaffPublicProfilePage />} />
+              <Route path="/review/:bookingId" element={<ReviewPage />} />
 
               <Route
                 path="/admin"
@@ -99,6 +108,7 @@ export function App() {
                 <Route path="settings" element={<AdminSettingsPage />} />
                 <Route path="statistics" element={<AdminStatisticsPage />} />
                 <Route path="team" element={<AdminTeamPage />} />
+                <Route path="reviews" element={<AdminReviewsPage />} />
               </Route>
 
               <Route

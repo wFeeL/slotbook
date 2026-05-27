@@ -40,6 +40,17 @@ export const ServiceReadSchema = z.object({
   price: z.string().nullable(),
   is_active: z.boolean(),
   sort_order: z.number(),
+  photos: z.array(z.object({
+    id: z.number(),
+    owner_type: z.enum(['service', 'staff']),
+    owner_id: z.number(),
+    sort_order: z.number(),
+    width: z.number().nullable(),
+    height: z.number().nullable(),
+    url: z.string(),
+  })),
+  avg_rating: z.number().nullable().optional(),
+  review_count: z.number(),
 });
 export type ServiceRead = z.infer<typeof ServiceReadSchema>;
 
@@ -50,6 +61,17 @@ export const StaffReadSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   is_active: z.boolean(),
+  photos: z.array(z.object({
+    id: z.number(),
+    owner_type: z.enum(['service', 'staff']),
+    owner_id: z.number(),
+    sort_order: z.number(),
+    width: z.number().nullable(),
+    height: z.number().nullable(),
+    url: z.string(),
+  })),
+  avg_rating: z.number().nullable().optional(),
+  review_count: z.number(),
 });
 export type StaffRead = z.infer<typeof StaffReadSchema>;
 
@@ -163,6 +185,17 @@ export const StaffReadWithServicesSchema = z.object({
   description: z.string().nullable(),
   is_active: z.boolean(),
   service_ids: z.array(z.number()),
+  photos: z.array(z.object({
+    id: z.number(),
+    owner_type: z.enum(['service', 'staff']),
+    owner_id: z.number(),
+    sort_order: z.number(),
+    width: z.number().nullable(),
+    height: z.number().nullable(),
+    url: z.string(),
+  })),
+  avg_rating: z.number().nullable().optional(),
+  review_count: z.number(),
 });
 export type StaffReadWithServices = z.infer<typeof StaffReadWithServicesSchema>;
 
@@ -347,3 +380,42 @@ export const UserBriefSchema = z.object({
   role: UserRoleSchema,
 });
 export type UserBrief = z.infer<typeof UserBriefSchema>;
+
+// ---------------------------------------------------------------------------
+// Trust: photos + reviews (sub-project 15)
+// ---------------------------------------------------------------------------
+
+export const PhotoOwnerTypeSchema = z.enum(['service', 'staff']);
+export type PhotoOwnerTypeT = z.infer<typeof PhotoOwnerTypeSchema>;
+
+export const PhotoReadSchema = z.object({
+  id: z.number(),
+  owner_type: PhotoOwnerTypeSchema,
+  owner_id: z.number(),
+  sort_order: z.number(),
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+  url: z.string(),
+});
+export type PhotoRead = z.infer<typeof PhotoReadSchema>;
+
+export const PhotoUploadIntentResponseSchema = z.object({
+  bot_url: z.string(),
+  expires_at: z.string(),
+});
+export type PhotoUploadIntentResponse = z.infer<typeof PhotoUploadIntentResponseSchema>;
+
+export const ReviewReadSchema = z.object({
+  id: z.number(),
+  booking_id: z.number(),
+  service_id: z.number(),
+  staff_id: z.number(),
+  rating: z.number(),
+  text: z.string().nullable(),
+  is_hidden: z.boolean(),
+  admin_reply: z.string().nullable(),
+  admin_reply_at: z.string().nullable(),
+  created_at: z.string(),
+  client_first_name: z.string().nullable().optional(),
+});
+export type ReviewRead = z.infer<typeof ReviewReadSchema>;
