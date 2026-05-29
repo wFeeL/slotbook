@@ -18,6 +18,8 @@ import {
   type MeResponse,
   PhotoUploadIntentResponseSchema,
   type PhotoUploadIntentResponse,
+  ReviewContextResponseSchema,
+  type ReviewContextResponse,
   ReviewReadSchema,
   type ReviewRead,
   ScheduleExceptionReadSchema,
@@ -92,6 +94,13 @@ export const api = {
         '/api/v1/reviews',
         { method: 'POST', body: JSON.stringify(body) },
         ReviewReadSchema,
+      );
+    },
+    context(bookingId: number): Promise<ReviewContextResponse> {
+      return request(
+        `/api/v1/reviews/by-booking/${bookingId}`,
+        { method: 'GET' },
+        ReviewContextResponseSchema,
       );
     },
     listForService(serviceId: number, opts: { limit?: number; offset?: number } = {}): Promise<ReviewRead[]> {

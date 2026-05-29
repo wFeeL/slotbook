@@ -14,7 +14,6 @@ import { pushToast } from '@/shared/store/toast-store';
 import { showConfirm } from '@/shared/telegram/hooks';
 import { bookingStatusLabel, bookingStatusTone } from '@/entities/booking/lib/status';
 import { formatLocalDate } from '@/shared/lib/date';
-import { ContactLinks } from '@/shared/ui/ContactLinks';
 import type { StaffBookingRead } from '@/entities/staff-me/model';
 
 export function StaffBookingDetailPage() {
@@ -133,10 +132,6 @@ export function StaffBookingDetailPage() {
               .filter(Boolean)
               .join(' ') || 'Клиент'}
           </div>
-          <ContactLinks
-            username={booking.client_username}
-            phone={booking.client_phone}
-          />
           {booking.client_comment && (
             <div className="text-sienna-deep text-sm italic">«{booking.client_comment}»</div>
           )}

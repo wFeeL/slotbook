@@ -28,3 +28,15 @@ class ReviewRead(BaseModel):
 
 class AdminReviewReplyRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+
+
+class ReviewBookingContext(BaseModel):
+    booking_id: int
+    starts_at: datetime
+    service_title: str
+    staff_name: str
+
+
+class ReviewContextResponse(BaseModel):
+    booking: ReviewBookingContext
+    review: ReviewRead | None = None

@@ -61,6 +61,11 @@ def render(
     staff_name = _esc(staff.name)
     comment = booking.client_comment
 
+    # Per spec: if mini_app_url is not configured, skip the keyboard and send text only.
+    # Telegram rejects WebApp buttons with empty/invalid URLs.
+    def _kb(factory):
+        return factory if mini_app_url else None
+
     if notification.notification_type == NotificationType.BOOKING_CREATED_CLIENT:
         text = (
             f"✅ <b>Запись подтверждена</b>\n\n"
@@ -69,7 +74,7 @@ def render(
             f"<b>Время:</b> {when}\n"
             f"<b>Длительность:</b> {service.duration_minutes} мин"
         )
-        return text, client_booking_created_keyboard(mini_app_url)
+        return text, _kb(client_booking_created_keyboard(mini_app_url))
 
     if notification.notification_type == NotificationType.BOOKING_CREATED_ADMIN:
         text = (
@@ -81,7 +86,7 @@ def render(
         )
         if comment:
             text += f"\n<b>Комментарий клиента:</b> {_esc(comment)}"
-        return text, admin_new_booking_keyboard(booking.id, mini_app_url)
+        return text, _kb(admin_new_booking_keyboard(booking.id, mini_app_url))
 
     if notification.notification_type == NotificationType.BOOKING_CANCELLED_CLIENT:
         return (
@@ -103,7 +108,7 @@ def render(
             f"<b>Специалист:</b> {staff_name}\n"
             f"<b>Новое время:</b> {when}"
         )
-        return text, client_booking_created_keyboard(mini_app_url)
+        return text, _kb(client_booking_created_keyboard(mini_app_url))
 
     if notification.notification_type == NotificationType.BOOKING_RESCHEDULED_ADMIN:
         text = (
@@ -112,7 +117,7 @@ def render(
             f"<b>Специалист:</b> {staff_name}\n"
             f"<b>Новое время:</b> {when}"
         )
-        return text, admin_new_booking_keyboard(booking.id, mini_app_url)
+        return text, _kb(admin_new_booking_keyboard(booking.id, mini_app_url))
 
     if notification.notification_type in (
         NotificationType.REMINDER_24H,
@@ -128,7 +133,7 @@ def render(
             f"<b>Специалист:</b> {staff_name}\n"
             f"<b>Время:</b> {when}"
         )
-        return text, client_booking_created_keyboard(mini_app_url)
+        return text, _kb(client_booking_created_keyboard(mini_app_url))
 
     client_name = _esc(client.first_name) if client and client.first_name else "Клиент"
 
@@ -142,7 +147,7 @@ def render(
         )
         if comment:
             text += f"\n<b>Комментарий:</b> {_esc(comment)}"
-        return text, staff_cabinet_keyboard(mini_app_url)
+        return text, _kb(staff_cabinet_keyboard(mini_app_url))
 
     if notification.notification_type == NotificationType.BOOKING_CANCELLED_STAFF:
         text = (
@@ -151,7 +156,7 @@ def render(
             f"<b>Клиент:</b> {client_name}\n"
             f"<b>Время:</b> {when}"
         )
-        return text, staff_cabinet_keyboard(mini_app_url)
+        return text, _kb(staff_cabinet_keyboard(mini_app_url))
 
     if notification.notification_type == NotificationType.BOOKING_RESCHEDULED_STAFF:
         text = (
@@ -160,7 +165,7 @@ def render(
             f"<b>Клиент:</b> {client_name}\n"
             f"<b>Новое время:</b> {when}"
         )
-        return text, staff_cabinet_keyboard(mini_app_url)
+        return text, _kb(staff_cabinet_keyboard(mini_app_url))
 
     if notification.notification_type == NotificationType.REVIEW_REQUEST:
         from app.bot.keyboards import review_request_keyboard
@@ -170,6 +175,6 @@ def render(
             f"<b>Мастер:</b> {staff_name}\n\n"
             f"Поставьте оценку — это поможет другим клиентам и нам стать лучше."
         )
-        return text, review_request_keyboard(mini_app_url, booking.id)
+        return text, _kb(review_request_keyboard(mini_app_url, booking.id))
 
     raise ValueError(f"Unknown notification type: {notification.notification_type}")

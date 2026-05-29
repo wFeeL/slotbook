@@ -72,6 +72,8 @@ class UsersRepo:
             stmt = stmt.where(User.role == role)
 
         if linkable_only:
+            allowed_roles = {UserRole.STAFF, UserRole.ADMIN, UserRole.SUPERADMIN}
+            stmt = stmt.where(User.role.in_(allowed_roles))
             linked_subq = select(StaffMember.user_id).where(
                 StaffMember.user_id.is_not(None),
                 StaffMember.is_active.is_(True),

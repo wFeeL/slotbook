@@ -7,10 +7,17 @@ from app.api.deps import CurrentUser, SessionDep
 from app.core.errors import Forbidden, NotFound
 from app.db.enums import BookingStatus
 from app.db.models.review import Review
+from app.db.models.service import Service
+from app.db.models.staff import StaffMember
 from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.reviews import ReviewsRepo
 from app.db.repositories.users import UsersRepo
-from app.schemas.reviews import ReviewCreate, ReviewRead
+from app.schemas.reviews import (
+    ReviewBookingContext,
+    ReviewContextResponse,
+    ReviewCreate,
+    ReviewRead,
+)
 from app.services.reviews_service import ReviewsService
 
 router = APIRouter(tags=["reviews"])
@@ -74,6 +81,30 @@ async def create_review(
     await session.commit()
 
     return _to_read(review, user.first_name)
+
+
+@router.get("/reviews/by-booking/{booking_id}", response_model=ReviewContextResponse)
+async def get_review_context(
+    booking_id: int, user: CurrentUser, session: SessionDep
+) -> ReviewContextResponse:
+    booking = await BookingsRepo(session).get(booking_id)
+    if booking is None or booking.client_id != user.id:
+        raise NotFound("Booking not found")
+    service = await session.get(Service, booking.service_id)
+    staff = await session.get(StaffMember, booking.staff_id)
+    review = await ReviewsRepo(session).get_by_booking(booking.id)
+    review_read: ReviewRead | None = None
+    if review is not None:
+        review_read = _to_read(review, user.first_name)
+    return ReviewContextResponse(
+        booking=ReviewBookingContext(
+            booking_id=booking.id,
+            starts_at=booking.starts_at,
+            service_title=service.title if service else "",
+            staff_name=staff.name if staff else "",
+        ),
+        review=review_read,
+    )
 
 
 @router.get("/services/{service_id}/reviews", response_model=list[ReviewRead])

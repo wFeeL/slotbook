@@ -67,6 +67,11 @@ function fmtDayHeader(iso: string): string {
   });
 }
 
+function todayLocalIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 const EXCEPTION_LABELS: Record<string, string> = {
   day_off: 'Выходной',
   extra_working_time: 'Доп. часы',
@@ -130,28 +135,6 @@ export function StaffCabinetPage() {
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось');
     }
-  }
-
-  if (me.data && !me.data.linked) {
-    return (
-      <div className="pt-2 pb-6 px-5 max-w-md mx-auto flex flex-col gap-4">
-        <header className="flex flex-col gap-1">
-          <button
-            type="button"
-            className="self-start text-sienna-deep text-sm"
-            onClick={() => navigate('/')}
-          >
-            ← На главную
-          </button>
-          <h1 className="text-xl text-ink font-display">Кабинет мастера</h1>
-        </header>
-        <EmptyState
-          title="Кабинет ещё не настроен"
-          description="Ваш аккаунт получил роль сотрудника, но администратор пока не связал его с записью мастера в каталоге. Передайте админу ваш Telegram username — он сделает связь в админ-панели за пару секунд."
-          glyph="leaf"
-        />
-      </div>
-    );
   }
 
   return (
@@ -222,16 +205,7 @@ export function StaffCabinetPage() {
                 <div className="text-ink">{b.service_title}</div>
                 <div className="text-sienna-deep text-sm">
                   {b.client_first_name ?? 'Клиент'}
-                  {b.client_username && ` · @${b.client_username}`}
                 </div>
-                {b.client_phone && (
-                  <a
-                    href={`tel:${b.client_phone}`}
-                    className="text-rose text-sm font-semibold"
-                  >
-                    📞 {b.client_phone}
-                  </a>
-                )}
                 {b.client_comment && (
                   <div className="text-sienna-deep text-sm italic">
                     «{b.client_comment}»
@@ -410,8 +384,13 @@ export function StaffCabinetPage() {
               {schedule.data?.days.map((day) => (
                 <Card key={day.date} surface="shell">
                   <div className="flex flex-col gap-1">
-                    <div className="text-ink font-semibold capitalize">
-                      {fmtDayHeader(day.date)}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-ink font-semibold capitalize">
+                        {fmtDayHeader(day.date)}
+                      </div>
+                      {day.date === todayLocalIso() && (
+                        <Badge tone="rose">Сегодня</Badge>
+                      )}
                     </div>
                     {day.working_intervals.length === 0 ? (
                       <div className="text-sienna-deep text-sm">Выходной</div>

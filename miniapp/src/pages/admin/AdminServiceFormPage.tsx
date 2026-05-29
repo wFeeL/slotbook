@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ServiceForm, type ServiceFormValues } from '@/features/admin-services/ServiceForm';
 import { useAdminServices, useArchiveService, useCreateService, useUpdateServiceById } from '@/entities/admin-service/api';
 import { pushToast } from '@/shared/store/toast-store';
-import { useHaptic } from '@/shared/telegram/hooks';
+import { useHaptic, showConfirm } from '@/shared/telegram/hooks';
 import { Button } from '@/shared/ui/Button';
 import { api } from '@/shared/api/endpoints';
 import { PhotoGallery } from '@/features/photos/PhotoGallery';
@@ -127,6 +127,8 @@ export function AdminServiceFormPage() {
                 variant="ghost"
                 size="md"
                 onClick={async () => {
+                  const ok = await showConfirm('Удалить это фото?');
+                  if (!ok) return;
                   try {
                     await delPhoto.mutateAsync(p.id);
                     pushToast('success', 'Фото удалено');

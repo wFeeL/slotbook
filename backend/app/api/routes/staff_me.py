@@ -85,8 +85,6 @@ def _booking_to_read(
         service_price=str(service.price) if service and service.price is not None else None,
         client_first_name=client.first_name if client else None,
         client_last_name=client.last_name if client else None,
-        client_phone=client.phone if client else None,
-        client_username=client.username if client else None,
         client_comment=booking.client_comment,
         admin_comment=booking.admin_comment,
     )
@@ -150,6 +148,7 @@ async def patch_my_booking(
     booking_id: int,
     body: StaffBookingPatch,
     staff: LinkedStaff,
+    user: CurrentUser,
     session: SessionDep,
 ) -> StaffBookingRead:
     booking = await BookingsRepo(session).get(booking_id)
@@ -166,7 +165,7 @@ async def patch_my_booking(
             )
         booking.status = body.status
         AuditRepo(session).log(
-            actor_user_id=staff.user_id or 0,
+            actor_user_id=user.id,
             action=f"booking_status_{body.status.value}",
             entity_type="booking",
             entity_id=booking.id,

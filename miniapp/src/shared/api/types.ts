@@ -329,8 +329,6 @@ export const StaffBookingReadSchema = z.object({
   service_price: z.string().nullable(),
   client_first_name: z.string().nullable(),
   client_last_name: z.string().nullable(),
-  client_phone: z.string().nullable(),
-  client_username: z.string().nullable(),
   client_comment: z.string().nullable(),
   admin_comment: z.string().nullable(),
 });
@@ -419,3 +417,14 @@ export const ReviewReadSchema = z.object({
   client_first_name: z.string().nullable().optional(),
 });
 export type ReviewRead = z.infer<typeof ReviewReadSchema>;
+
+export const ReviewContextResponseSchema = z.object({
+  booking: z.object({
+    booking_id: z.number(),
+    starts_at: z.string(),
+    service_title: z.string(),
+    staff_name: z.string(),
+  }),
+  review: ReviewReadSchema.nullable(),
+});
+export type ReviewContextResponse = z.infer<typeof ReviewContextResponseSchema>;

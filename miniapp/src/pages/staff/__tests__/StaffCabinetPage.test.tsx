@@ -59,8 +59,6 @@ describe('StaffCabinetPage', () => {
             service_price: '1000',
             client_first_name: 'Иван',
             client_last_name: null,
-            client_phone: '+71234567890',
-            client_username: 'ivan',
             client_comment: null,
             admin_comment: null,
           },

@@ -13,7 +13,6 @@ export function UserLinkField({ value, onChange, currentUserId }: Props) {
     queryKey: ['admin', 'users', 'linkable', currentUserId],
     queryFn: () =>
       api.admin.users.list({
-        role: 'staff',
         linkable_only: true,
         include_user_id: currentUserId ?? undefined,
       }),

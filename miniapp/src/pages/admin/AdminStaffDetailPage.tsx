@@ -11,6 +11,7 @@ import { Skeleton } from '@/shared/ui/Skeleton';
 import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
 import { pushToast } from '@/shared/store/toast-store';
+import { showConfirm } from '@/shared/telegram/hooks';
 import { cn } from '@/shared/lib/cn';
 import { api } from '@/shared/api/endpoints';
 import { PhotoGallery } from '@/features/photos/PhotoGallery';
@@ -166,6 +167,8 @@ function StaffPhotosSection({ staffId }: { staffId: number }) {
             variant="ghost"
             size="md"
             onClick={async () => {
+              const ok = await showConfirm('Удалить это фото?');
+              if (!ok) return;
               try {
                 await delPhoto.mutateAsync(p.id);
                 pushToast('success', 'Фото удалено');

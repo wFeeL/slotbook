@@ -24,7 +24,7 @@ export function PhotoUploadButton({ ownerType, ownerId }: Props) {
       } else {
         window.location.href = bot_url;
       }
-      pushToast('success', 'Откройте чат с ботом и пришлите фото');
+      pushToast('info', 'Откройте чат с ботом и пришлите фото');
     } catch (e) {
       pushToast('error', e instanceof Error ? e.message : 'Не удалось');
     }

@@ -50,7 +50,7 @@ describe('RequireStaff', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('allows staff role even when not linked (cabinet shows setup-pending state)', () => {
+  it('redirects unlinked staff to / with toast', () => {
     setUser();
     useAuthStore.setState({
       staffMe: {
@@ -61,7 +61,8 @@ describe('RequireStaff', () => {
       },
     });
     render(<Harness />);
-    expect(screen.getByText('cabinet')).toBeInTheDocument();
+    expect(screen.getByText('home')).toBeInTheDocument();
+    expect(useToastStore.getState().toasts.some((t) => t.tone === 'error')).toBe(true);
   });
 
   it('renders children when linked', () => {
