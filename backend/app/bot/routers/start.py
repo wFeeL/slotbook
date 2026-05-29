@@ -27,7 +27,10 @@ async def handle_start(message: Message, session: AsyncSession) -> None:
     # Parse /start payload (deep-link arg).
     text = (message.text or "").strip()
     parts = text.split(maxsplit=1)
-    payload = parts[1] if len(parts) > 1 else ""
+    # Cap payload length defensively — Telegram's deep-link spec allows up to 64
+    # characters; anything longer is malformed or an abuse attempt. Avoids
+    # oversized DB lookups on hostile input.
+    payload = (parts[1] if len(parts) > 1 else "")[:64]
 
     invite_token: str | None = None
     if payload.startswith("invite_"):

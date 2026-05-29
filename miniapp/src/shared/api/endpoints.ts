@@ -181,6 +181,18 @@ export const api = {
       const qs = q.toString();
       return `/api/v1/admin/exports/bookings.xlsx${qs ? `?${qs}` : ''}`;
     },
+    issueExportTicket(body: {
+      kind: 'csv' | 'xlsx';
+      date_from?: string | null;
+      date_to?: string | null;
+      staff_id?: number | null;
+    }): Promise<{ ticket: string; expires_at: string }> {
+      return request(
+        '/api/v1/admin/exports/ticket',
+        { method: 'POST', body: JSON.stringify(body) },
+        z.object({ ticket: z.string(), expires_at: z.string() }),
+      );
+    },
     branches: {
       list(): Promise<BranchRead[]> {
         return request('/api/v1/admin/branches', { method: 'GET' }, z.array(BranchReadSchema));

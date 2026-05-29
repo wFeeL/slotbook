@@ -47,8 +47,17 @@ def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings)
 
+    # Hide schema endpoints in prod — they enumerate every admin route + body shape.
+    docs_kwargs: dict = {}
+    if settings.APP_ENV == "prod":
+        docs_kwargs = {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
     app = FastAPI(
-        title="SlotBook API", version="0.1.0", debug=settings.APP_DEBUG, lifespan=lifespan
+        title="SlotBook API",
+        version="0.1.0",
+        debug=settings.APP_DEBUG,
+        lifespan=lifespan,
+        **docs_kwargs,
     )
     install_exception_handlers(app)
     app.include_router(health.router, tags=["health"])

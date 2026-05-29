@@ -28,24 +28,33 @@ function absoluteUrl(pathOrUrl: string): string {
 /**
  * Download an authenticated file. Strategy:
  *
- * 1. iOS in Telegram → call `Telegram.WebApp.openLink(absURL?token=JWT)`. Telegram
- *    opens the URL in the system browser (Safari), which respects our
- *    Content-Disposition: attachment header and shows the native download prompt.
- * 2. Desktop / Android → fetch with Authorization header → blob → anchor click
- *    with `download` attribute → defer revoke by 60s so the browser has time
- *    to actually consume the blob.
+ * 1. iOS / Android in Telegram → mint a 60-second download-scoped ticket
+ *    server-side, then `Telegram.WebApp.openLink(absURL?ticket=<short-jwt>)`.
+ *    The ticket has `purpose=export` and binds kind+params, so leaking the URL
+ *    via Referer/logs cannot be replayed against any other endpoint and
+ *    expires within seconds.
+ * 2. Desktop / non-Telegram → fetch with Authorization header → blob → anchor.
  */
-async function downloadAuthed(url: string, filename: string): Promise<void> {
+async function downloadAuthed(
+  url: string,
+  filename: string,
+  kind: 'csv' | 'xlsx',
+  params: { from?: string; to?: string; staff_id?: number },
+): Promise<void> {
   const token = getAuthToken();
   const tg = getWebApp();
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
 
-  // Mobile Telegram path: open in system browser via WebApp.openLink so iOS Safari
-  // (or Android Chrome) handles the Content-Disposition download natively.
   if (tg && (isIOS || isAndroid) && typeof tg.openLink === 'function' && token) {
+    const { ticket } = await api.admin.issueExportTicket({
+      kind,
+      date_from: params.from ?? null,
+      date_to: params.to ?? null,
+      staff_id: params.staff_id ?? null,
+    });
     const sep = url.includes('?') ? '&' : '?';
-    const fullUrl = `${absoluteUrl(url)}${sep}token=${encodeURIComponent(token)}`;
+    const fullUrl = `${absoluteUrl(url)}${sep}ticket=${encodeURIComponent(ticket)}`;
     tg.openLink(fullUrl);
     return;
   }
@@ -60,8 +69,6 @@ async function downloadAuthed(url: string, filename: string): Promise<void> {
   const blob = await res.blob();
   const objectUrl = URL.createObjectURL(blob);
   anchorDownload(objectUrl, filename);
-  // Defer revoke — synchronous revoke races with the browser's download fetch
-  // and produces an empty file in some browsers (notably Chromium on macOS).
   setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 }
 
@@ -258,7 +265,10 @@ export function AdminStatisticsPage() {
           ? api.admin.exportCsvUrl({ from: from || undefined, to: to || undefined })
           : api.admin.exportXlsxUrl({ from: from || undefined, to: to || undefined });
       const ext = format;
-      await downloadAuthed(url, `slotbook-bookings.${ext}`);
+      await downloadAuthed(url, `slotbook-bookings.${ext}`, format, {
+        from: from || undefined,
+        to: to || undefined,
+      });
       pushToast('success', 'Загружено');
       setExportOpen(false);
     } catch (e) {

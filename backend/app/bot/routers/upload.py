@@ -7,7 +7,7 @@ from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.enums import PhotoOwnerType
+from app.db.enums import PhotoOwnerType, UserRole
 from app.db.models.photo import Photo
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
@@ -59,6 +59,10 @@ async def on_photo(message: Message, session: AsyncSession) -> None:
         return
     db_user = await UsersRepo(session).get_by_telegram_id(tg_user.id)
     if db_user is None:
+        return
+    # Re-check admin role at upload time — closes the window where an admin who
+    # created a pending intent gets demoted within the 10-minute TTL.
+    if db_user.role not in (UserRole.ADMIN, UserRole.SUPERADMIN):
         return
     pending = await PendingPhotoUploadsRepo(session).get_for_user(db_user.id)
     now = datetime.now(UTC)

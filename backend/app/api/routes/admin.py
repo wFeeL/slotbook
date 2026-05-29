@@ -663,15 +663,23 @@ async def admin_statistics(
     return await StatisticsService(session).collect(business.id, period, staff_id=staff_id)
 
 
-async def _resolve_admin_from_query_or_header(
-    session: SessionDep,
-    authorization: Annotated[str | None, Header()] = None,
-    token: Annotated[str | None, Query()] = None,
-) -> User:
-    """Same as AdminUser dep, but also accepts ?token= query param.
+from fastapi import Header  # noqa: E402
 
-    Needed for file-download endpoints opened in external browser (Telegram
-    WebApp.openLink) where we cannot attach the Authorization header.
+
+async def _resolve_admin_for_export(
+    session: SessionDep,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+    ticket: Annotated[str | None, Query()] = None,
+) -> User:
+    """Resolve current admin for file-download endpoints.
+
+    Two paths:
+    - `Authorization: Bearer <jwt>` — normal full-scope admin JWT.
+    - `?ticket=<jwt>` — short-lived (default 60s) download-scoped token issued
+      via POST /admin/exports/ticket. The token's purpose+kind+params claims
+      are bound to the URL the user just clicked, so leaking the URL via logs
+      or Referer headers cannot be replayed against any other endpoint.
     """
     from app.core.config import get_settings
     from app.core.errors import Forbidden as _Forbidden
@@ -679,16 +687,39 @@ async def _resolve_admin_from_query_or_header(
     from app.core.security import decode_jwt
     from app.db.repositories.users import UsersRepo as _UsersRepo
 
+    settings = get_settings()
+    is_ticket = False
     raw: str | None = None
     if authorization and authorization.lower().startswith("bearer "):
         raw = authorization.split(" ", 1)[1].strip()
-    elif token:
-        raw = token.strip()
+    elif ticket:
+        raw = ticket.strip()
+        is_ticket = True
     if not raw:
         raise _InvalidToken("Authorization required")
 
-    settings = get_settings()
     payload = decode_jwt(raw, secret=settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+    if is_ticket:
+        if payload.get("purpose") != "export":
+            raise _InvalidToken("Ticket not valid for this endpoint")
+        # Bind ticket to URL: kind matches path suffix, params match query.
+        expected_kind = "csv" if request.url.path.endswith(".csv") else "xlsx"
+        if payload.get("kind") != expected_kind:
+            raise _InvalidToken("Ticket kind mismatch")
+        expected_params = {
+            "from": request.query_params.get("from"),
+            "to": request.query_params.get("to"),
+            "staff_id": request.query_params.get("staff_id"),
+        }
+        actual_params = payload.get("params") or {}
+        if actual_params != expected_params:
+            raise _InvalidToken("Ticket params mismatch")
+    elif payload.get("purpose") == "export":
+        # Download-scoped ticket must NOT be accepted via Authorization header;
+        # forces the leak path (Referer/logs) to also pass our purpose check.
+        raise _InvalidToken("Export ticket must use ?ticket=")
+
     user_id_raw = payload.get("sub")
     if user_id_raw is None:
         raise _InvalidToken("Token missing subject")
@@ -705,13 +736,64 @@ async def _resolve_admin_from_query_or_header(
     return user
 
 
-from fastapi import Header  # noqa: E402  (kept inline for clarity above)
+from pydantic import BaseModel as _BaseModel  # noqa: E402
+
+
+class _ExportTicketRequest(_BaseModel):
+    kind: str  # 'csv' | 'xlsx'
+    date_from: str | None = None
+    date_to: str | None = None
+    staff_id: int | None = None
+
+
+class _ExportTicketResponse(_BaseModel):
+    ticket: str
+    expires_at: datetime
+
+
+@router.post("/exports/ticket", response_model=_ExportTicketResponse)
+async def issue_export_ticket(
+    body: _ExportTicketRequest, admin: AdminUser
+) -> _ExportTicketResponse:
+    """Mint a short-lived (60s), purpose-scoped ticket for an export URL.
+
+    Replaces the previous ?token=<full-admin-JWT> pattern. The ticket is bound
+    to a specific export kind + params, so leakage via Referer/logs cannot be
+    replayed against any other endpoint.
+    """
+    from fastapi import HTTPException
+
+    from app.core.security import issue_download_ticket
+
+    if body.kind not in ("csv", "xlsx"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="kind must be csv or xlsx"
+        )
+    settings = get_settings()
+    params = {
+        "from": body.date_from,
+        "to": body.date_to,
+        "staff_id": str(body.staff_id) if body.staff_id is not None else None,
+    }
+    ttl = timedelta(seconds=60)
+    ticket = issue_download_ticket(
+        subject=str(admin.id),
+        role=admin.role.value,
+        kind=body.kind,
+        params=params,
+        secret=settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+        expires_in=ttl,
+    )
+    return _ExportTicketResponse(
+        ticket=ticket, expires_at=datetime.now(UTC) + ttl
+    )
 
 
 @router.get("/exports/bookings.csv")
 async def export_bookings_csv(
     session: SessionDep,
-    _admin: Annotated[User, Depends(_resolve_admin_from_query_or_header)],
+    _admin: Annotated[User, Depends(_resolve_admin_for_export)],
     date_from: Annotated[date | None, Query(alias="from")] = None,
     date_to: Annotated[date | None, Query(alias="to")] = None,
     staff_id: int | None = None,
@@ -726,6 +808,8 @@ async def export_bookings_csv(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
         },
     )
 
@@ -733,7 +817,7 @@ async def export_bookings_csv(
 @router.get("/exports/bookings.xlsx")
 async def export_bookings_xlsx(
     session: SessionDep,
-    _admin: Annotated[User, Depends(_resolve_admin_from_query_or_header)],
+    _admin: Annotated[User, Depends(_resolve_admin_for_export)],
     date_from: Annotated[date | None, Query(alias="from")] = None,
     date_to: Annotated[date | None, Query(alias="to")] = None,
     staff_id: int | None = None,
@@ -750,6 +834,8 @@ async def export_bookings_xlsx(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
         },
     )
 

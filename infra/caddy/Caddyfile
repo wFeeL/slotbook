@@ -2,6 +2,18 @@
 {$DOMAIN} {
     encode zstd gzip
 
+    # Security headers — applied to every response.
+    # Mini App is embedded inside Telegram WebView, so frame-ancestors must allow telegram.org.
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://api.telegram.org; frame-ancestors https://web.telegram.org https://t.me https://*.telegram.org; base-uri 'self'; form-action 'self'"
+        # Hide server fingerprint.
+        -Server
+    }
+
     @api path /api/*
     handle @api {
         reverse_proxy api:8000

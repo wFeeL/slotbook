@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import structlog
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.api.deps import CurrentUser, SessionDep
-from app.db.enums import BookingSource, BookingStatus
+from app.core.rate_limit import rate_limit_booking_create
+from app.db.enums import BookingSource, BookingStatus, UserRole
 from app.db.repositories.bookings import BookingsRepo
 from app.db.repositories.businesses import BusinessesRepo
 from app.schemas.bookings import BookingCreate, BookingRead, BookingReschedule
@@ -16,7 +17,12 @@ log = structlog.get_logger()
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 
-@router.post("", response_model=BookingRead, status_code=201)
+@router.post(
+    "",
+    response_model=BookingRead,
+    status_code=201,
+    dependencies=[Depends(rate_limit_booking_create)],
+)
 async def create_booking(
     body: BookingCreate,
     user: CurrentUser,
@@ -63,10 +69,13 @@ async def cancel_booking(
 ) -> BookingRead:
     business = await BusinessesRepo(session).get_singleton()
     assert business is not None
+    # /bookings/* are client-facing. Force CLIENT role so booking_service enforces
+    # ownership (booking.client_id == actor_user_id) and the cancellation window.
+    # Admins use /admin/*, staff use /staff/me/* routes for their own bookings.
     booking = await BookingService(session).cancel_booking(
         business=business,
         actor_user_id=user.id,
-        actor_role=user.role,
+        actor_role=UserRole.CLIENT,
         booking_id=booking_id,
     )
     try:
@@ -91,7 +100,7 @@ async def reschedule_my_booking(
     booking = await BookingService(session).reschedule_booking(
         business=business,
         actor_user_id=user.id,
-        actor_role=user.role,
+        actor_role=UserRole.CLIENT,
         booking_id=booking_id,
         new_starts_at=body.starts_at,
     )

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 
 import httpx
+from aiogram.exceptions import TelegramAPIError
 from fastapi import APIRouter, Request, Response
 
 from app.api.deps import SessionDep
 from app.core.config import get_settings
 from app.core.errors import NotFound
 from app.db.models.photo import Photo
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/photos", tags=["photos"])
 
@@ -32,6 +36,14 @@ async def _resolve_file_path(bot, file_id: str) -> str:
         return file.file_path
 
 
+def _bad_gateway(photo_id: int, reason: str) -> Response:
+    # `reason` may contain the upstream URL with the embedded bot token (httpx
+    # error variants include the full URL in their str representation). Keep
+    # details in the server log only — never echo to the response body.
+    logger.warning("photo.proxy_upstream_failed photo_id=%s reason=%s", photo_id, reason)
+    return Response(content="Upstream fetch failed", status_code=502)
+
+
 @router.get("/{photo_id}")
 async def proxy_photo(
     photo_id: int, session: SessionDep, request: Request
@@ -43,23 +55,28 @@ async def proxy_photo(
     bot = request.app.state.bot
     settings = get_settings()
 
-    file_path = await _resolve_file_path(bot, photo.telegram_file_id)
+    try:
+        file_path = await _resolve_file_path(bot, photo.telegram_file_id)
+    except TelegramAPIError as exc:
+        return _bad_gateway(photo_id, f"get_file: {exc}")
+
     url = f"https://api.telegram.org/file/bot{settings.BOT_TOKEN}/{file_path}"
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             r = await client.get(url)
             if r.status_code == 404:
                 _CACHE.pop(photo.telegram_file_id, None)
-                file_path = await _resolve_file_path(bot, photo.telegram_file_id)
+                try:
+                    file_path = await _resolve_file_path(bot, photo.telegram_file_id)
+                except TelegramAPIError as exc:
+                    return _bad_gateway(photo_id, f"get_file (retry): {exc}")
                 url = (
                     f"https://api.telegram.org/file/bot{settings.BOT_TOKEN}/{file_path}"
                 )
                 r = await client.get(url)
             r.raise_for_status()
         except httpx.HTTPError as exc:
-            return Response(
-                content=f"Upstream fetch failed: {exc}", status_code=502
-            )
+            return _bad_gateway(photo_id, f"httpx: {exc}")
 
     return Response(
         content=r.content,
