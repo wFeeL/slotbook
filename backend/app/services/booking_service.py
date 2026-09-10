@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import random
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 import structlog
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import (
@@ -104,7 +106,76 @@ class BookingService:
     # Public API
     # ------------------------------------------------------------------
 
+    # SQLSTATE, означающие «помешала параллельная транзакция, повтор безопасен»:
+    # deadlock_detected и serialization_failure.
+    _RETRYABLE_SQLSTATES = frozenset({"40P01", "40001"})
+    # Повторов сверх первой попытки. Второй дедлок подряд возможен под нагрузкой.
+    _MAX_CONFLICT_RETRIES = 3
+
+    @staticmethod
+    def _is_retryable_conflict(exc: DBAPIError) -> bool:
+        orig = exc.orig
+        sqlstate = getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
+        return sqlstate in BookingService._RETRYABLE_SQLSTATES
+
     async def create_booking(
+        self,
+        *,
+        business: Business,
+        actor_user_id: int,
+        client_id: int,
+        staff_id: int,
+        service_id: int,
+        starts_at: datetime,
+        client_comment: str | None = None,
+        source: BookingSource = BookingSource.MINI_APP,
+        now_utc: datetime | None = None,
+    ) -> Booking:
+        """Create a booking, retrying once when a concurrent attempt deadlocked us.
+
+        Two bookings that overlap without sharing a start time both reach the
+        INSERT, and each waits on the other's uncommitted row under the
+        ``bookings_no_overlap`` EXCLUDE constraint, so Postgres kills one with
+        SQLSTATE 40P01. That is a lost race, not a server fault. On the retry the
+        winner is already committed, the SELECT ... FOR UPDATE in step 7 sees it
+        and the caller gets SlotAlreadyTaken instead of a 500.
+
+        Identical start times never reach this path: the partial unique index
+        rejects the second INSERT outright, which surfaces as IntegrityError.
+        """
+        attempt = {
+            "business": business,
+            "actor_user_id": actor_user_id,
+            "client_id": client_id,
+            "staff_id": staff_id,
+            "service_id": service_id,
+            "starts_at": starts_at,
+            "client_comment": client_comment,
+            "source": source,
+            "now_utc": now_utc,
+        }
+        last_exc: DBAPIError | None = None
+        for retry in range(self._MAX_CONFLICT_RETRIES + 1):
+            try:
+                return await self._create_booking_attempt(**attempt)
+            except DBAPIError as exc:
+                if not self._is_retryable_conflict(exc):
+                    raise
+                last_exc = exc
+                await self.session.rollback()
+                logger.warning(
+                    "booking_create_retry_after_conflict",
+                    sqlstate=getattr(exc.orig, "sqlstate", None),
+                    retry=retry,
+                    staff_id=staff_id,
+                    starts_at=starts_at.isoformat(),
+                )
+                # Небольшая рассинхронизация, чтобы повторы двух проигравших
+                # транзакций не столкнулись снова в тот же момент.
+                await asyncio.sleep(random.uniform(0.01, 0.05) * (retry + 1))
+        raise last_exc  # type: ignore[misc]
+
+    async def _create_booking_attempt(
         self,
         *,
         business: Business,
