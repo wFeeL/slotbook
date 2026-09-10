@@ -82,8 +82,17 @@ jobs:
           sed -i 's|^BOT_WEBHOOK_SECRET_TOKEN=$|BOT_WEBHOOK_SECRET_TOKEN=ci-secret|' .env.production
           sed -i 's|^BOT_WEBHOOK_URL=.*$|BOT_WEBHOOK_URL=https://slotbook.invalid/webhook/telegram|' .env.production
           sed -i 's|^MINI_APP_URL=.*$|MINI_APP_URL=https://slotbook.invalid|' .env.production
+      - name: Build images
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production build
+      - name: Run migrations
+        # docker-compose.prod.yml намеренно не мигрирует сам, это отдельный шаг в
+        # scripts/deploy.sh. Smoke повторяет ту же последовательность, иначе api
+        # стартует на пустой базе и падает на "relation businesses does not exist".
+        run: |
+          docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api \
+            uv run alembic upgrade head
       - name: Boot stack
-        run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+        run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d
       - name: Wait for api healthy
         run: |
           for i in $(seq 1 60); do
