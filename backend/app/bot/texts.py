@@ -124,9 +124,9 @@ def render(
         NotificationType.REMINDER_2H,
     ):
         if notification.notification_type == NotificationType.REMINDER_2H:
-            header = "⏰ <b>Напоминание</b> — через 2 часа у вас запись"  # noqa: RUF001
+            header = "⏰ <b>Напоминание</b> — через 2 часа у вас запись"
         else:
-            header = "📅 <b>Напоминание</b> — через 24 часа у вас запись"  # noqa: RUF001
+            header = "📅 <b>Напоминание</b> — через 24 часа у вас запись"
         text = (
             f"{header}\n\n"
             f"<b>Услуга:</b> {service_title}\n"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -31,7 +32,6 @@ from app.schemas.schedules import (
     WorkingHoursEntry,
     WorkingHoursReplace,
 )
-from app.schemas.statistics import StatisticsPeriod, StatisticsResponse
 from app.schemas.staff_me import (
     StaffBookingPatch,
     StaffBookingRead,
@@ -44,6 +44,7 @@ from app.schemas.staff_me import (
     StaffScheduleInterval,
     StaffScheduleResponse,
 )
+from app.schemas.statistics import StatisticsPeriod, StatisticsResponse
 
 router = APIRouter(prefix="/staff/me", tags=["staff-me"])
 
@@ -378,8 +379,7 @@ async def delete_my_exception(
 
 async def _ensure_own_booking(session, staff, booking_id: int):
     """Return booking if it belongs to this staff; raise NotFound otherwise."""
-    from app.db.repositories.bookings import BookingsRepo as _BR
-    bk = await _BR(session).get(booking_id)
+    bk = await BookingsRepo(session).get(booking_id)
     if bk is None or bk.staff_id != staff.id:
         raise NotFound("Запись не найдена")
     return bk
@@ -406,12 +406,10 @@ async def cancel_my_booking(
         actor_role=UserRole.STAFF,
         booking_id=booking_id,
     )
-    try:
+    with contextlib.suppress(Exception):
         await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
             booking.id
         )
-    except Exception:
-        pass
 
     svc = await session.get(Service, booking.service_id)
     cli = await session.get(User, booking.client_id)
@@ -441,12 +439,10 @@ async def reschedule_my_booking(
         booking_id=booking_id,
         new_starts_at=body.starts_at,
     )
-    try:
+    with contextlib.suppress(Exception):
         await NotificationService(session, request.app.state.bot).dispatch_pending_for_booking(
             booking.id
         )
-    except Exception:
-        pass
 
     svc = await session.get(Service, booking.service_id)
     cli = await session.get(User, booking.client_id)

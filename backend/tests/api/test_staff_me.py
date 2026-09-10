@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, time as dtime, timedelta
+from datetime import UTC, datetime, timedelta
+from datetime import time as dtime
 
 import pytest
 
@@ -11,7 +12,6 @@ from app.db.models.service import Service
 from app.db.models.staff import StaffMember
 from app.db.models.user import User
 from tests.conftest import auth_headers
-
 
 # ---------------------------------------------------------------------------
 # GET /staff/me
@@ -347,9 +347,10 @@ async def test_create_my_exception_day_off(
 async def test_delete_my_exception(
     client, db_session, staff_user, linked_staff, settings
 ) -> None:
+    from datetime import date as date_t
+
     from app.db.enums import ScheduleExceptionType
     from app.db.models.schedule import ScheduleException
-    from datetime import date as date_t
     exc = ScheduleException(
         staff_id=linked_staff.id,
         date=date_t(2026, 6, 20),
@@ -376,9 +377,10 @@ async def test_delete_other_staff_exception_404(
     db_session.add(other)
     await db_session.commit()
     await db_session.refresh(other)
+    from datetime import date as date_t
+
     from app.db.enums import ScheduleExceptionType
     from app.db.models.schedule import ScheduleException
-    from datetime import date as date_t
     exc = ScheduleException(
         staff_id=other.id,
         date=date_t(2026, 6, 21),
@@ -446,6 +448,7 @@ async def test_reschedule_own_booking(
     client, db_session, business, staff_user, linked_staff, settings
 ) -> None:
     from datetime import time as time_t
+
     from app.db.enums import BookingSource
     from app.db.models.booking import Booking
     from app.db.models.schedule import WorkingHours

@@ -13,7 +13,6 @@ from app.core.errors import CannotCancelInCurrentStatus, NotFound
 from app.core.time import local_date_bounds_utc
 from app.db.enums import BookingSource, BookingStatus, PhotoOwnerType, UserRole
 from app.db.models.branch import Branch
-from app.db.models.photo import Photo
 from app.db.models.schedule import ScheduleException, WorkingHours
 from app.db.models.service import Service
 from app.db.models.staff import StaffMember
@@ -39,12 +38,12 @@ from app.schemas.admin import (
     DashboardResponse,
 )
 from app.schemas.bookings import BookingReschedule
+from app.schemas.branches import BranchCreate, BranchRead, BranchUpdate
 from app.schemas.photos import (
     PhotoSortUpdate,
     PhotoUploadIntentCreate,
     PhotoUploadIntentResponse,
 )
-from app.schemas.branches import BranchCreate, BranchRead, BranchUpdate
 from app.schemas.schedules import (
     ScheduleExceptionCreate,
     ScheduleExceptionRead,
@@ -1153,6 +1152,8 @@ from app.db.models.review import Review as _Review  # noqa: E402
 from app.db.repositories.reviews import ReviewsRepo as _ReviewsRepo  # noqa: E402
 from app.schemas.reviews import (  # noqa: E402
     AdminReviewReplyRequest as _ReplyReq,
+)
+from app.schemas.reviews import (  # noqa: E402
     ReviewRead as _ReviewRead,
 )
 from app.services.reviews_service import ReviewsService as _ReviewsService  # noqa: E402
@@ -1252,8 +1253,11 @@ async def admin_delete_review(
 # ---------------------------------------------------------------------------
 
 from sqlalchemy.exc import IntegrityError as _IntegrityError  # noqa: E402
+
 from app.db.enums import (  # noqa: E402
     NotificationStatus as _NotificationStatus,
+)
+from app.db.enums import (  # noqa: E402
     NotificationType as _NotificationType,
 )
 from app.db.models.notification import Notification as _Notification  # noqa: E402

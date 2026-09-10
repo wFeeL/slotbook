@@ -77,7 +77,9 @@ async def world(db_session):
 async def test_immediate_dispatch_does_not_fire_reminders(db_session, world):
     biz, client, service, staff = world
     starts_at = datetime.now(UTC) + timedelta(days=3)
-    starts_at = starts_at.replace(minute=0, second=0, microsecond=0)
+    # Час фиксирован намеренно: рабочие часы 09:00-21:00 по Москве (UTC+3),
+    # а now(UTC) унаследовал бы текущий час и ронял тест по вечерам и ночью.
+    starts_at = starts_at.replace(hour=12, minute=0, second=0, microsecond=0)
     booking = await BookingService(db_session).create_booking(
         business=biz,
         actor_user_id=client.id,

@@ -57,7 +57,7 @@ def my_bookings_keyboard(mini_app_url: str) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="📋 Все записи в Mini App",  # noqa: RUF001
+                    text="📋 Все записи в Mini App",
                     web_app=WebAppInfo(url=f"{mini_app_url.rstrip('/')}/my-bookings"),
                 )
             ]

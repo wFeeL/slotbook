@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, time as time_t, timedelta
+from datetime import UTC, datetime, timedelta
+from datetime import time as time_t
 
 import pytest
 from sqlalchemy import select

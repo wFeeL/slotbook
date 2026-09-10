@@ -36,9 +36,10 @@ async def test_create_upload_intent_returns_bot_url(
 async def test_create_upload_intent_replaces_existing(
     client, db_session, business, admin_user, settings
 ) -> None:
+    from sqlalchemy import select
+
     from app.db.models.pending_photo_upload import PendingPhotoUpload
     from app.db.models.service import Service
-    from sqlalchemy import select
 
     svc1 = Service(business_id=business.id, branch_id=business._default_branch_id, title="A", duration_minutes=30)
     svc2 = Service(business_id=business.id, branch_id=business._default_branch_id, title="B", duration_minutes=30)
