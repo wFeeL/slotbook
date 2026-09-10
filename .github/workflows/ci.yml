@@ -30,7 +30,9 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://booking:booking@localhost:5432/booking
       TEST_DATABASE_URL: postgresql+asyncpg://booking:booking@localhost:5432/booking_test
-      BOT_TOKEN: ci-bot-token
+      # aiogram валидирует формат токена при старте, поэтому нужна
+      # синтаксически правильная заглушка, а не произвольная строка.
+      BOT_TOKEN: "123456789:ci-dummy-token-never-registered"
       JWT_SECRET: ci-jwt-secret-please-rotate
     steps:
       - uses: actions/checkout@v7
@@ -75,7 +77,7 @@ jobs:
           sed -i 's|^DOMAIN=$|DOMAIN=:80|' .env.production
           sed -i 's|^POSTGRES_PASSWORD=$|POSTGRES_PASSWORD=ci-pass|' .env.production
           sed -i 's|^JWT_SECRET=$|JWT_SECRET=ci-jwt-secret-32-chars-minimum-len|' .env.production
-          sed -i 's|^BOT_TOKEN=$|BOT_TOKEN=ci-bot-token|' .env.production
+          sed -i 's|^BOT_TOKEN=$|BOT_TOKEN=123456789:ci-dummy-token-never-registered|' .env.production
           # BOT_MODE остаётся webhook: prod-preflight в app/core/config.py
           # намеренно отвергает polling, http и пустой webhook при APP_ENV=prod,
           # поэтому smoke обязан проходить настоящую прод-валидацию, а не обходить её.
