@@ -76,10 +76,12 @@ jobs:
           sed -i 's|^POSTGRES_PASSWORD=$|POSTGRES_PASSWORD=ci-pass|' .env.production
           sed -i 's|^JWT_SECRET=$|JWT_SECRET=ci-jwt-secret-32-chars-minimum-len|' .env.production
           sed -i 's|^BOT_TOKEN=$|BOT_TOKEN=ci-bot-token|' .env.production
-          sed -i 's|^BOT_MODE=webhook$|BOT_MODE=polling|' .env.production
+          # BOT_MODE остаётся webhook: prod-preflight в app/core/config.py
+          # намеренно отвергает polling, http и пустой webhook при APP_ENV=prod,
+          # поэтому smoke обязан проходить настоящую прод-валидацию, а не обходить её.
           sed -i 's|^BOT_WEBHOOK_SECRET_TOKEN=$|BOT_WEBHOOK_SECRET_TOKEN=ci-secret|' .env.production
-          sed -i 's|^BOT_WEBHOOK_URL=.*$|BOT_WEBHOOK_URL=|' .env.production
-          sed -i 's|^MINI_APP_URL=.*$|MINI_APP_URL=http://localhost|' .env.production
+          sed -i 's|^BOT_WEBHOOK_URL=.*$|BOT_WEBHOOK_URL=https://slotbook.invalid/webhook/telegram|' .env.production
+          sed -i 's|^MINI_APP_URL=.*$|MINI_APP_URL=https://slotbook.invalid|' .env.production
       - name: Boot stack
         run: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
       - name: Wait for api healthy
